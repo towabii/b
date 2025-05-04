@@ -5,22 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>リアルタイム地震ビューアー</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 </head>
 <body>
-    <div id="app">
-        <div id="earthquake-info">
-            <h3>地震情報</h3>
-            <div id="shindo">震度: 0</div>
-            <div id="wave-time">予測到達時間: 0秒</div>
-            <div id="tsunami-info">津波警報: なし</div>
-        </div>
-
-        <div id="map"></div>
-
-        <button id="test-button">テスト地震発生</button>
+    <div id="earthquake-info">
+        <h1>リアルタイム地震ビューアー</h1>
+        <div id="shindo">震度: 0</div>
+        <div id="magnitude">マグニチュード: 0.0</div>
+        <div id="location">場所: －</div>
+        <div id="time">発生時刻: －</div>
     </div>
+
+    <div id="map"></div>
+
+    <button id="test-button">テスト地震発生</button>
 
     <script src="script.js"></script>
 </body>
