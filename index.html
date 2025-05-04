@@ -46,13 +46,12 @@
       justify-content: space-between;
     }
     #intensity {
-      font-size: 48px;
+      font-size: 150px;
       font-weight: bold;
       margin-top: 10px;
-    }
-    #intensity-text {
-      font-size: 12px;
-      margin-top: 5px;
+      width: 100%;
+      text-align: center;
+      color: white;
     }
     #earthquake-info, #time-info {
       font-size: 18px;
@@ -65,7 +64,7 @@
       margin-top: 20px;
     }
     #map {
-      height: 200px;
+      height: 300px;
       width: 100%;
       margin-top: 20px;
     }
@@ -109,15 +108,13 @@
   <div id="top-bar">震度チェッカー</div>
   <div id="main-content">
     <div id="left-panel">
-      <div id="intensity-text">震度</div>
-      <div id="intensity">0</div>
+      <div id="intensity">震度 0</div>
       <div id="earthquake-info">地震情報</div>
-      <div id="warning">揺れが続いています！</div>
       <div id="map"></div>
     </div>
     <div id="right-panel">
-      <div id="time-info">残り時間: 0秒</div>
-      <div id="seconds">0秒</div>
+      <div id="time-info">P波到達まで: 0秒<br>S波到達まで: 0秒</div>
+      <div id="seconds">残り時間: 0秒</div>
       <div id="tsunami-info">津波予測情報: なし</div>
       <button id="permission-button">センサーを許可</button>
     </div>
@@ -128,6 +125,7 @@
     let lastShakeValue = 0;
     let shakeCounter = 0;
     let shakeHistory = [];
+    let earthquakeLocationLat, earthquakeLocationLon;
     const shakeThreshold = 1.5; // 揺れのしきい値（gal）
     const shakeDurationThreshold = 10; // 揺れが続く時間（秒）
     const colors = {
@@ -157,12 +155,18 @@
       fetch('https://api.p2pquake.net/v1/quake/now.json')
         .then(response => response.json())
         .then(data => {
-          const earthquake = data.results[0]; 
+          const earthquake = data.results[0];
+          earthquakeLocationLat = earthquake.lat;
+          earthquakeLocationLon = earthquake.lon;
+
           const earthquakeInfo = `
             震源地: ${earthquake.origin} <br>
             発生時刻: ${new Date(earthquake.time * 1000).toLocaleString()}
           `;
           document.getElementById('earthquake-info').innerHTML = earthquakeInfo;
+
+          updateMap(earthquakeLocationLat, earthquakeLocationLon); // 地震の発生地点を地図に表示
+          setTimeout(() => updateMap(userLat, userLon), 2000); // 現在地の表示
         })
         .catch(error => console.error('地震情報の取得エラー:', error));
     }
@@ -177,7 +181,7 @@
       }).addTo(map);
 
       L.marker([lat, lon]).addTo(map)
-        .bindPopup(`<b>現在地:</b> ${lat}, ${lon}`)
+        .bindPopup(`<b>場所:</b> ${lat}, ${lon}`)
         .openPopup();
     }
 
@@ -218,7 +222,7 @@
         // 震度の色変更
         document.getElementById('intensity').style.color = colors[intensity];
 
-        // 10秒間同じ揺れを続けた場合に警告表示
+        // 10秒間同じ揺れを続けた場合に震度表示
         if (Math.abs(gal - lastShakeValue) < shakeThreshold) {
           shakeCounter++;
         } else {
@@ -226,9 +230,9 @@
         }
 
         if (shakeCounter >= shakeDurationThreshold) {
-          document.getElementById('warning').style.display = 'block';
+          updateIntensity(intensity); // 震度の更新
         } else {
-          document.getElementById('warning').style.display = 'none';
+          document.getElementById('intensity').textContent = "震度 0";
         }
 
         lastShakeValue = gal;
@@ -251,7 +255,7 @@
 
     // 震度の更新
     function updateIntensity(intensity) {
-      document.getElementById('intensity').textContent = intensity;
+      document.getElementById('intensity').textContent = `震度 ${intensity}`;
     }
 
     // ページ読み込み時に位置情報を取得
