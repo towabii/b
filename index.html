@@ -1,26 +1,34 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>地震チェッカー</title>
-  <link rel="stylesheet" href="index.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地震チェッカー</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="container">
-    <div id="panel-shindo" class="panel">
-      <div id="panel-shindo-official">震度（気象庁）：---</div>
-      <div id="panel-shindo-acceleration">震度（加速度）：---</div>
+    <div id="container">
+        <div id="top-left">
+            <h2>加速度震度</h2>
+            <p id="acceleration-magnitude">震度: <span id="accel-shindo">-</span></p>
+            <p id="accel-shindo2">気象庁発表震度: <span id="meteo-shindo">-</span></p>
+        </div>
+        <div id="top-right">
+            <h2>揺れ予測</h2>
+            <p id="prediction-time">揺れまでの時間: <span id="time-to-shake">-</span></p>
+        </div>
+        <div id="bottom-left">
+            <h2>地図</h2>
+            <div id="map"></div>
+        </div>
+        <div id="bottom-right">
+            <h2>津波情報</h2>
+            <p id="tsunami-warning">津波情報: <span id="tsunami-info">-</span></p>
+        </div>
+        <button id="test-mode">テストモード</button>
     </div>
-    <div id="panel-map" class="panel">
-      <div id="map"></div>
-    </div>
-    <div id="panel-timer" class="panel">P波: --s / S波: --s</div>
-    <div id="panel-tsunami" class="panel">津波情報：なし</div>
-  </div>
-  <button id="testButton">テスト地震発生</button>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="index.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
