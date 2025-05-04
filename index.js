@@ -16,7 +16,6 @@ navigator.geolocation.getCurrentPosition(pos => {
 });
 
 let shakeHistory = [];
-let atmosphericShindo = 0; // 気象庁発表震度（仮）
 window.addEventListener("devicemotion", e => {
   const acc = e.accelerationIncludingGravity;
   if (!acc) return;
@@ -32,17 +31,14 @@ window.addEventListener("devicemotion", e => {
 });
 
 function updateShindo(level) {
-  const panel = document.getElementById("panel-shindo");
-  let shindoText = `震度（気象庁）: ${atmosphericShindo} / 震度（加速度）: ${level}`;
-  if (level === 6) {
-    shindoText += "強";
-  } else if (level === 5) {
-    shindoText += "+";
-  } else if (level > 5) {
-    shindoText += "強";
-  }
-  panel.textContent = shindoText;
-  panel.style.backgroundColor = getColor(level);
+  const officialShindoPanel = document.getElementById("panel-shindo-official");
+  const accelerationShindoPanel = document.getElementById("panel-shindo-acceleration");
+
+  officialShindoPanel.textContent = `震度（気象庁）：${level}`;
+  accelerationShindoPanel.textContent = `震度（加速度）：${level}`;
+
+  officialShindoPanel.style.backgroundColor = getColor(level);
+  accelerationShindoPanel.style.backgroundColor = getColor(level);
 }
 
 function convertToShindo(gal) {
@@ -103,8 +99,8 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 6);
-  const sTime = Math.floor(dist / 3.5);
+  const pTime = Math.floor(dist / 4); // P波の速度3～4km/s
+  const sTime = Math.floor(dist / 7); // S波の速度7km/s
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
@@ -130,28 +126,12 @@ function showEpicenterAndWaves(epiLat, epiLon) {
       iconSize: [32, 32],
       iconAnchor: [16, 16]
     });
-    L.marker([epiLat, epiLon], { icon: xIcon }).addTo(map).bindPopup("震源地");
+    L.marker([epiLat, epiLon], { icon: xIcon }).addTo(map);
 
     startWaveCountdown(epiLat, epiLon);
-
-    let rP = 0, rS = 0;
-    if (pWaveCircle) map.removeLayer(pWaveCircle);
-    if (sWaveCircle) map.removeLayer(sWaveCircle);
-
-    pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.2 }).addTo(map);
-    sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
-    
-    const animate = () => {
-      rP += 0.03;
-      rS += 0.05;
-      pWaveCircle.setRadius(rP * 10000);
-      sWaveCircle.setRadius(rS * 10000);
-      if (rP < 150) requestAnimationFrame(animate);
-    };
-    animate();
-  }, 1000);
+  }, 2000);
 }
 
-document.getElementById("testButton").addEventListener("click", function() {
-  showEpicenterAndWaves(userLat + 0.5, userLon + 0.5);
+document.getElementById("testButton").addEventListener("click", () => {
+  showEpicenterAndWaves(userLat + 0.02, userLon + 0.02); // テスト用震源
 });
