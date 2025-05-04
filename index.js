@@ -16,6 +16,7 @@ navigator.geolocation.getCurrentPosition(pos => {
 });
 
 let shakeHistory = [];
+let atmosphericShindo = 0; // 気象庁発表震度（仮）
 window.addEventListener("devicemotion", e => {
   const acc = e.accelerationIncludingGravity;
   if (!acc) return;
@@ -32,7 +33,7 @@ window.addEventListener("devicemotion", e => {
 
 function updateShindo(level) {
   const panel = document.getElementById("panel-shindo");
-  let shindoText = `震度：${level}`;
+  let shindoText = `震度（気象庁）: ${atmosphericShindo} / 震度（加速度）: ${level}`;
   if (level === 6) {
     shindoText += "強";
   } else if (level === 5) {
@@ -137,21 +138,20 @@ function showEpicenterAndWaves(epiLat, epiLon) {
     if (pWaveCircle) map.removeLayer(pWaveCircle);
     if (sWaveCircle) map.removeLayer(sWaveCircle);
 
-    pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.3 }).addTo(map);
+    pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.2 }).addTo(map);
     sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
-
-    let interval = setInterval(() => {
-      rP += 600; rS += 350;
-      pWaveCircle.setRadius(rP);
-      sWaveCircle.setRadius(rS);
-      if (rS > 300000) clearInterval(interval);
-    }, 100);
-  }, 3000);
+    
+    const animate = () => {
+      rP += 0.03;
+      rS += 0.05;
+      pWaveCircle.setRadius(rP * 10000);
+      sWaveCircle.setRadius(rS * 10000);
+      if (rP < 150) requestAnimationFrame(animate);
+    };
+    animate();
+  }, 1000);
 }
 
-document.getElementById("testButton").addEventListener("click", () => {
-  const ryukyuLat = 26.3;
-  const ryukyuLon = 127.5;
-  updateShindo(7);
-  showEpicenterAndWaves(ryukyuLat, ryukyuLon);
+document.getElementById("testButton").addEventListener("click", function() {
+  showEpicenterAndWaves(userLat + 0.5, userLon + 0.5);
 });
