@@ -32,7 +32,11 @@ window.addEventListener("devicemotion", e => {
 
 function updateShindo(level) {
   const panel = document.getElementById("panel-shindo");
-  let shindoText = `気象庁震度：${level}`;
+  const panelMeteorological = document.getElementById("panel-shindo-meteorological");
+  
+  let shindoText = `震度（加速度）：${level}`;
+  let meteorologicalShindoText = `震度（気象庁）：${convertToMeteorologicalShindo(level)}`;
+
   if (level === 6) {
     shindoText += "強";
   } else if (level === 5) {
@@ -40,9 +44,10 @@ function updateShindo(level) {
   } else if (level > 5) {
     shindoText += "強";
   }
-
+  
   panel.textContent = shindoText;
   panel.style.backgroundColor = getColor(level);
+  panelMeteorological.textContent = meteorologicalShindoText;
 }
 
 function convertToShindo(gal) {
@@ -54,6 +59,18 @@ function convertToShindo(gal) {
   if (gal < 12) return 4;
   if (gal < 18) return 5;
   if (gal < 30) return 6;
+  return 7;
+}
+
+function convertToMeteorologicalShindo(gal) {
+  // 気象庁の震度に変換
+  if (gal < 1) return 0;
+  if (gal < 4) return 1;
+  if (gal < 6) return 2;
+  if (gal < 8) return 3;
+  if (gal < 10) return 4;
+  if (gal < 12) return 5;
+  if (gal < 15) return 6;
   return 7;
 }
 
@@ -103,55 +120,19 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 7);  // P波: 約7km/s
-  const sTime = Math.floor(dist / 3.5);  // S波: 約3.5km/s
+  const pTime = Math.floor(dist / 7); // P波の速度は7km/s
+  const sTime = Math.floor(dist / 3.5); // S波の速度は3.5km/s
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
     const sRemain = Math.max(sTime - t, 0);
     document.getElementById("panel-timer").textContent = `P波: ${pRemain}s / S波: ${sRemain}s`;
-    if (pRemain === 0 && sRemain === 0) clearInterval(interval);
     t++;
-  }, 1000);
-}
-
-function showEpicenterAndWaves(epiLat, epiLon) {
-  if (!map || userLat === null) return;
-
-  map.setView([epiLat, epiLon], 10);
-
-  setTimeout(() => {
-    const bounds = L.latLngBounds([[epiLat, epiLon], [userLat, userLon]]);
-    map.fitBounds(bounds, { padding: [50, 50] });
-
-    const xIcon = L.divIcon({
-      className: 'x-icon',
-      html: `<div style="color: red; font-size: 32px;">✖</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
-    });
-    L.marker([epiLat, epiLon], { icon: xIcon }).addTo(map).bindPopup("震源地");
-
-    startWaveCountdown(epiLat, epiLon);
-
-    let rP = 0, rS = 0;
-    if (pWaveCircle) map.removeLayer(pWaveCircle);
-    if (sWaveCircle) map.removeLayer(sWaveCircle);
-
-    pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.3 }).addTo(map);
-    sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
-
-    let expand = 0;
-    const expandInterval = setInterval(() => {
-      rP = pWaveCircle.getRadius();
-      rS = sWaveCircle.getRadius();
-      pWaveCircle.setRadius(rP + 5);
-      sWaveCircle.setRadius(rS + 5);
-      if (rP > 200000) clearInterval(expandInterval);  // P波が十分広がったら止める
-    }, 10);
+    if (pRemain === 0 && sRemain === 0) clearInterval(interval);
   }, 1000);
 }
 
 document.getElementById("testButton").addEventListener("click", () => {
-  showEpicenterAndWaves(25.28, 127.6);  // 琉球トラフのテスト震源地
+  console.log("テスト地震発生！");
+  startWaveCountdown(24.4433, 123.6989); // 琉球トラフの位置に設定
 });
