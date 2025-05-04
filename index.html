@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>震度チェッカー（地面置き対応）</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>正確な震度判定（簡易）</title>
   <style>
     body {
       font-family: sans-serif;
@@ -29,8 +29,8 @@
   </style>
 </head>
 <body>
-  <h1>スマホで震度チェック</h1>
-  <p>スマホを平らな場所に置いて揺れを検知します。</p>
+  <h1>スマホで震度判定（簡易）</h1>
+  <p>机や地面にスマホを置いて、地震のような揺れに反応します。</p>
   <div id="intensity">震度：0</div>
   <button id="permission-button">センサーを許可</button>
 
@@ -51,38 +51,40 @@
       }
     });
 
+    // 簡易震度変換（気象庁の震度階級表を参考に）
     function toIntensity(gal) {
-      if (gal < 2) return 0;
-      if (gal < 10) return 1;
-      if (gal < 50) return 2;
-      if (gal < 100) return 3;
+      if (gal < 2.5) return 0;
+      if (gal < 8) return 1;
+      if (gal < 25) return 2;
+      if (gal < 80) return 3;
       if (gal < 250) return 4;
       if (gal < 400) return "5弱";
-      if (gal < 600) return "5強";
-      if (gal < 800) return "6弱";
-      if (gal < 1000) return "6強";
+      if (gal < 550) return "5強";
+      if (gal < 700) return "6弱";
+      if (gal < 850) return "6強";
       return 7;
     }
 
-    let lastTime = 0;
+    const buffer = [];
+    const bufferSize = 10; // 過去10回（約1秒）のデータを保持
+
     function startDetecting() {
       window.addEventListener('devicemotion', function (event) {
         const acc = event.acceleration;
         if (!acc) return;
 
-        const now = Date.now();
-        if (now - lastTime < 100) return; // 0.1秒ごとの更新（ノイズ防止）
-        lastTime = now;
-
         const x = acc.x || 0;
         const y = acc.y || 0;
         const z = acc.z || 0;
 
-        const total = Math.sqrt(x * x + y * y + z * z);
+        const value = Math.sqrt(x * x + y * y + z * z);
+        const gal = value * 100;
 
-        // 小さい揺れ（0.2m/s²以下）は無視して震度0扱い
-        const gal = total < 0.2 ? 0 : total * 100;
-        const intensity = toIntensity(gal);
+        buffer.push(gal);
+        if (buffer.length > bufferSize) buffer.shift(); // 最新10件だけ保持
+
+        const avgGal = buffer.reduce((a, b) => a + b, 0) / buffer.length;
+        const intensity = toIntensity(avgGal);
 
         document.getElementById('intensity').textContent = `震度：${intensity}`;
       });
