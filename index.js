@@ -1,34 +1,42 @@
-// 地震情報の更新
-function updateEarthquakeInfo(data) {
-    // ここで取得した地震データを使って、表示を更新
-    document.getElementById('shindo').textContent = `震度: ${data.shindo}`;
-    document.getElementById('magnitude').textContent = `マグニチュード: ${data.magnitude}`;
-    document.getElementById('location').textContent = `場所: ${data.location}`;
-    document.getElementById('time').textContent = `発生時刻: ${new Date(data.time).toLocaleString()}`;
-}
+// ドラッグ可能なブロックの設定
+const blocks = document.querySelectorAll('.block');
+const programArea = document.getElementById('program-area');
 
-// 地震情報を取得
-function getEarthquakeData() {
-    fetch('https://api.p2pquake.net/v1/earthquake/last')
-        .then(response => response.json())
-        .then(data => {
-            updateEarthquakeInfo(data);
-        })
-        .catch(error => console.error('地震情報の取得に失敗:', error));
-}
-
-// テスト地震発生シミュレーション
-document.getElementById('test-button').addEventListener('click', () => {
-    let testData = {
-        shindo: 5,
-        magnitude: 7.2,
-        location: "沖縄県近海",
-        time: Date.now()
-    };
-    updateEarthquakeInfo(testData);
+// ブロックのドラッグ開始
+blocks.forEach(block => {
+    block.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', e.target.id);
+    });
 });
 
-// ページが読み込まれたら地震情報を取得
-window.onload = function() {
-    getEarthquakeData();
-};
+// プログラムエリアへのドロップ
+programArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+});
+
+programArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const blockId = e.dataTransfer.getData('text/plain');
+    const block = document.getElementById(blockId);
+    const clone = block.cloneNode(true);
+    programArea.appendChild(clone);
+    clone.style.marginTop = "10px"; // 少しスペースを空けて配置
+});
+
+// 実行ボタンの処理
+document.getElementById('run-btn').addEventListener('click', () => {
+    const blocksInArea = programArea.children;
+    if (blocksInArea.length > 0) {
+        let output = "実行結果: ";
+        Array.from(blocksInArea).forEach(block => {
+            if (block.innerText.includes('移動')) {
+                output += "→ ";
+            } else if (block.innerText.includes('ジャンプ')) {
+                output += "ジャンプ！";
+            }
+        });
+        alert(output);
+    } else {
+        alert("プログラムが作成されていません！");
+    }
+});
