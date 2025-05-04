@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>震度チェッカー</title>
+  <title>地震予測と揺れチェッカー</title>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
-      padding: 40px;
+      padding: 20px;
     }
     #intensity {
       font-size: 48px;
       font-weight: bold;
       color: #e63946;
       margin-top: 30px;
+    }
+    #earthquake-info, #time-info {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #1d3557;
     }
     #permission-button {
       margin-top: 30px;
@@ -26,11 +31,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    #earthquake-info {
-      margin-top: 30px;
-      font-size: 18px;
-      color: #1d3557;
-    }
     #map {
       width: 100%;
       height: 400px;
@@ -41,32 +41,36 @@
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 </head>
 <body>
-  <h1>スマホで震度チェック</h1>
+  <h1>スマホで震度チェッカー</h1>
   <p>スマホを机や地面に置いて揺れを検知します。</p>
   
   <div id="intensity">震度：0</div>
   <div id="earthquake-info">最新の地震情報はここに表示されます。</div>
+  <div id="time-info">地震到達までの予測時間：0秒</div>
   
   <button id="permission-button">センサーを許可</button>
 
   <div id="map"></div> <!-- 地図表示エリア -->
 
   <script>
-    document.getElementById('permission-button').addEventListener('click', function () {
-      if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission().then(response => {
-          if (response === 'granted') {
-            startDetecting();
-            this.style.display = 'none';
-          } else {
-            alert("センサー使用が許可されませんでした。");
-          }
-        }).catch(console.error);
+    // 位置情報（ユーザーの現在位置）を取得
+    let userLat, userLon;
+
+    // 現在地を取得
+    function getUserLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          userLat = position.coords.latitude;
+          userLon = position.coords.longitude;
+          console.log(`現在位置：緯度=${userLat}, 経度=${userLon}`);
+          updateMap(userLat, userLon); // 現在地の地図更新
+        }, function(error) {
+          console.error("位置情報の取得に失敗しました。", error);
+        });
       } else {
-        startDetecting();
-        this.style.display = 'none';
+        console.error("Geolocation APIはサポートされていません。");
       }
-    });
+    }
 
     // 気象庁APIから地震情報を取得
     function fetchEarthquakeInfo() {
@@ -84,6 +88,21 @@
           // 震源地の緯度・経度を地図上にマーカー表示
           const lat = earthquake.latitude;  // 緯度
           const lon = earthquake.longitude; // 経度
+          const distance = calculateDistance(userLat, userLon, lat, lon); // 現在地との距離
+
+          // 地震到達までの予測時間（P波とS波）
+          const pWaveSpeed = 8.0;  // P波の速度 (km/s)
+          const sWaveSpeed = 4.5;  // S波の速度 (km/s)
+
+          const pWaveTime = distance / pWaveSpeed;  // P波の到達時間（秒）
+          const sWaveTime = distance / sWaveSpeed;  // S波の到達時間（秒）
+
+          // P波、S波の到達時間を表示
+          document.getElementById('time-info').innerHTML = `
+            P波到達時間: ${Math.round(pWaveTime)}秒<br>
+            S波到達時間: ${Math.round(sWaveTime)}秒
+          `;
+
           updateMap(lat, lon);
         })
         .catch(error => console.error('地震情報の取得エラー:', error));
@@ -91,7 +110,12 @@
 
     // 地図の更新
     function updateMap(lat, lon) {
-      // 地図の表示設定
+      console.log("震源地の緯度:", lat, "経度:", lon); // デバッグ用
+      if (!lat || !lon) {
+        console.error("震源地の位置情報が無効です。");
+        return;
+      }
+
       const map = L.map('map').setView([lat, lon], 6); // 初期表示位置
 
       // 地図タイル（国土地理院）
@@ -104,9 +128,65 @@
       L.marker([lat, lon]).addTo(map)
         .bindPopup(`<b>震源地:</b> ${lat}, ${lon}`)
         .openPopup();
+
+      // 現在地をマーカーとして表示
+      if (userLat && userLon) {
+        L.marker([userLat, userLon]).addTo(map)
+          .bindPopup(`<b>現在地:</b> ${userLat}, ${userLon}`)
+          .openPopup();
+      }
     }
 
-    // 気象庁の震度階級変換
+    // 2点間の距離を計算（ハーサイン法）
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // 地球の半径（km）
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c; // 距離（km）
+      return distance;
+    }
+
+    // センサー許可後に地震を検知
+    document.getElementById('permission-button').addEventListener('click', function () {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission().then(response => {
+          if (response === 'granted') {
+            startDetecting();
+            this.style.display = 'none';
+          } else {
+            alert("センサー使用が許可されませんでした。");
+          }
+        }).catch(console.error);
+      } else {
+        startDetecting();
+        this.style.display = 'none';
+      }
+    });
+
+    // 地震の揺れを検出
+    function startDetecting() {
+      window.addEventListener('devicemotion', function (event) {
+        const acc = event.acceleration;
+        if (!acc) return;
+
+        const x = acc.x || 0;
+        const y = acc.y || 0;
+        const z = acc.z || 0;
+
+        const value = Math.sqrt(x * x + y * y + z * z);
+        const gal = value * 100;
+
+        // 揺れの強さ（震度）の計算
+        const intensity = toIntensity(gal);
+        document.getElementById('intensity').textContent = `震度：${intensity}`;
+      });
+    }
+
+    // galを震度に変換
     function toIntensity(gal) {
       if (gal < 2.5) return 0;
       if (gal < 8) return 1;
@@ -120,34 +200,9 @@
       return 7;
     }
 
-    const buffer = [];
-    const bufferSize = 10; // 過去10回のデータを保持（1秒程度）
-    let lastTime = 0;
-
-    function startDetecting() {
-      window.addEventListener('devicemotion', function (event) {
-        const acc = event.acceleration;
-        if (!acc) return;
-
-        const x = acc.x || 0;
-        const y = acc.y || 0;
-        const z = acc.z || 0;
-
-        const value = Math.sqrt(x * x + y * y + z * z);
-        const gal = value * 100;
-
-        buffer.push(gal);
-        if (buffer.length > bufferSize) buffer.shift(); // 最新10件だけ保持
-
-        const avgGal = buffer.reduce((a, b) => a + b, 0) / buffer.length;
-        const intensity = toIntensity(avgGal);
-
-        document.getElementById('intensity').textContent = `震度：${intensity}`;
-      });
-    }
-
-    // 定期的に地震情報を取得
-    setInterval(fetchEarthquakeInfo, 60000); // 1分毎に更新
+    // 初期設定と定期的な地震情報の取得
+    getUserLocation();
+    setInterval(fetchEarthquakeInfo, 60000); // 1分毎に地震情報を更新
     fetchEarthquakeInfo(); // 初回取得
   </script>
 </body>
