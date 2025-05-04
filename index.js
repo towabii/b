@@ -93,4 +93,36 @@ function showEpicenterAndWaves(epiLat, epiLon) {
     if (sWaveCircle) map.removeLayer(sWaveCircle);
     
     pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.3 }).addTo(map);
-    sWave
+    sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
+
+    let rP = 0, rS = 0;
+    let interval = setInterval(() => {
+      rP += 700; rS += 350;
+      pWaveCircle.setRadius(rP);
+      sWaveCircle.setRadius(rS);
+      if (rS > 300000) {
+        clearInterval(interval);
+        pWaveCircle.remove();
+        sWaveCircle.remove();
+      }
+    }, 100);
+  }, 3000);
+}
+
+function drawTsunamiLine(lat1, lon1, lat2, lon2) {
+  const tsunamiColor = "blue";
+  const lineCoordinates = [[lat1, lon1], [lat2, lon2]];
+  if (tsunamiLine) map.removeLayer(tsunamiLine);
+  tsunamiLine = L.polyline(lineCoordinates, { color: tsunamiColor, weight: 5 }).addTo(map);
+}
+
+function detectQuake(shindo) {
+  const magnitude = Math.random() * 3 + 5; // Random magnitude 5-8
+  const depth = Math.random() * 700 + 0; // Random depth 0-700km
+  const epiLat = userLat + (Math.random() - 0.5) * 1; // Random epicenter position
+  const epiLon = userLon + (Math.random() - 0.5) * 1;
+  document.getElementById("magnitude").textContent = `マグニチュード: ${magnitude.toFixed(2)}`;
+  document.getElementById("depth").textContent = `深さ: ${depth.toFixed(0)} km`;
+
+  showEpicenterAndWaves(epiLat, epiLon);
+}
