@@ -3,8 +3,7 @@ let userLon = null;
 let map = null;
 let pWaveCircle = null;
 let sWaveCircle = null;
-let tsunamiLine = null; // 津波表示用の線
-let tsunamiEffect = false; // 津波の影響エリア
+let tsunamiLine = null;
 
 navigator.geolocation.getCurrentPosition(pos => {
   userLat = pos.coords.latitude;
@@ -32,11 +31,14 @@ window.addEventListener("devicemotion", e => {
 });
 
 function updateShindo(level) {
-  const panel = document.getElementById("panel-shindo");
-  panel.textContent = `実際の震度：${level}`;
-  panel.style.backgroundColor = getColor(level);
-  updateTsunamiWarning(level); // 津波警報の更新
-  document.getElementById("panel-shindo-gov").textContent = `気象庁の震度：${level}`; // 気象庁の震度
+  const realShindoPanel = document.getElementById("real-shindo");
+  realShindoPanel.textContent = `実際の震度：${level}`;
+  realShindoPanel.style.backgroundColor = getColor(level);
+}
+
+function updateOfficialShindo(level) {
+  const officialShindoPanel = document.getElementById("official-shindo");
+  officialShindoPanel.textContent = `気象庁震度：${level}`;
 }
 
 function getColor(level) {
@@ -46,24 +48,18 @@ function getColor(level) {
   return "lightgreen";
 }
 
-function updateTsunamiWarning(level) {
-  if (level >= 4) {
-    tsunamiEffect = true;
-    let color = level >= 7 ? 'purple' : level >= 5 ? 'red' : 'yellow';
-    if (tsunamiLine) map.removeLayer(tsunamiLine);
-    tsunamiLine = L.polyline([
-      [userLat, userLon], [userLat + 0.1, userLon + 0.1]
-    ], { color: color }).addTo(map); // 仮の線
-  } else {
-    if (tsunamiLine) map.removeLayer(tsunamiLine);
-    tsunamiEffect = false;
-  }
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function updateTimer(epiLat, epiLon) {
+function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 7);  // P波
-  const sTime = Math.floor(dist / 3.5); // S波
+  const pTime = Math.floor(dist / 7);  // P波: 7 km/s
+  const sTime = Math.floor(dist / 3.5); // S波: 3.5 km/s
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
@@ -91,33 +87,10 @@ function showEpicenterAndWaves(epiLat, epiLon) {
     });
     L.marker([epiLat, epiLon], { icon: xIcon }).addTo(map).bindPopup("震源地");
 
-    updateTimer(epiLat, epiLon);
+    startWaveCountdown(epiLat, epiLon);
 
-    let rP = 0, rS = 0;
     if (pWaveCircle) map.removeLayer(pWaveCircle);
     if (sWaveCircle) map.removeLayer(sWaveCircle);
-
+    
     pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.3 }).addTo(map);
-    sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
-
-    let interval = setInterval(() => {
-      rP += 700;  // P波の速度
-      rS += 350;  // S波の速度
-      pWaveCircle.setRadius(rP);
-      sWaveCircle.setRadius(rS);
-      if (rS > 300000) {
-        clearInterval(interval);
-        pWaveCircle.remove();
-        sWaveCircle.remove();
-      }
-    }, 100);
-  }, 3000);
-}
-
-document.getElementById("testButton").addEventListener("click", () => {
-  const ryukyuLat = 26.3;
-  const ryukyuLon = 127.5;
-  document.getElementById("panel-magnitude").textContent = "マグニチュード: 8.1";
-  document.getElementById("panel-depth").textContent = "深さ: 10km";
-  showEpicenterAndWaves(ryukyuLat, ryukyuLon);
-});
+    sWave
