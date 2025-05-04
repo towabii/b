@@ -1,180 +1,199 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>震度チェッカー</title>
   <style>
     body {
       margin: 0;
       font-family: sans-serif;
-      background: #000;
-      color: white;
-      overflow: hidden;
-    }
-    #map {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 0;
-    }
-    .overlay {
-      position: absolute;
-      z-index: 2;
-      box-sizing: border-box;
-    }
-    #title {
-      top: 5px; left: 50%; transform: translateX(-50%);
-      font-size: 12px;
-      z-index: 3;
-    }
-    #intensity {
-      top: 0; left: 0; width: 50%; height: 50%;
-      font-size: 28px;
-      text-align: center;
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      transition: background 0.5s;
-    }
-    #countdown {
-      left: 0; bottom: 0; width: 50%; height: 50%;
-      font-size: 20px;
-      display: flex; justify-content: center; align-items: center;
-      text-align: center;
-    }
-    #tsunami {
-      right: 0; top: 0; width: 50%; height: 50%;
-      font-size: 18px;
-      display: flex; justify-content: center; align-items: center;
-      text-align: center;
-    }
-    #controls {
-      right: 0; bottom: 0; width: 50%; height: 50%;
+      background-color: #000;
+      color: #fff;
       display: flex;
       flex-direction: row;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
     }
-    #buttons, #info {
+    .section {
+      box-sizing: border-box;
+      padding: 0.5em;
+    }
+    .left {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .right {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .top-left {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
-      font-size: 12px;
+      text-align: center;
     }
-    button {
-      margin: 5px;
-      font-size: 14px;
+    .shindo-current {
+      font-size: 3rem;
     }
-    .background {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 1;
-      background-color: black;
-      opacity: 0.5;
+    .shindo-predict {
+      font-size: 2rem;
+      color: #ccc;
+    }
+    .bottom-left {
+      flex: 1;
+    }
+    .top-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: center;
+    }
+    .countdown {
+      font-size: 2rem;
+    }
+    .tsunami {
+      font-size: 1.5rem;
+    }
+    .bottom-right {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5em;
+    }
+    .btn {
+      padding: 1em;
+      margin: 0.5em;
+      font-size: 1rem;
+    }
+    .info {
+      text-align: right;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div class="background"></div>
-
-  <div id="title" class="overlay">震度チェッカー</div>
-
-  <div id="intensity" class="overlay">
-    <div style="font-size: 10px;">震度</div>
-    <div id="shindo">0</div>
-  </div>
-  <div id="countdown" class="overlay">到達まで - 秒</div>
-  <div id="tsunami" class="overlay">発表なし</div>
-
-  <div id="controls" class="overlay">
-    <div id="buttons">
-      <button onclick="startTest()">テスト</button>
-      <button onclick="requestSensorPermission()">センサー許可</button>
+  <div class="left section">
+    <div class="top-left">
+      <div class="shindo-current" id="shindoCurrent">震度 0</div>
+      <div class="shindo-predict" id="shindoPredict">予測震度: -</div>
     </div>
-    <div id="info">
-      <div id="area">--</div>
-      <div id="magnitude">--</div>
+    <div class="bottom-left">
+      <div id="map"></div>
     </div>
   </div>
+  <div class="right section">
+    <div class="top-right">
+      <div class="countdown" id="countdown">あと -- 秒</div>
+      <div class="tsunami" id="tsunamiInfo">津波の心配はありません</div>
+    </div>
+    <div class="bottom-right">
+      <div>
+        <button class="btn" onclick="startTest()">テスト</button>
+        <button class="btn" onclick="requestSensorPermission()">センサー許可</button>
+      </div>
+      <div class="info" id="earthquakeInfo">震源地: -<br>マグニチュード: -</div>
+    </div>
+  </div>
 
-  <audio id="alert" src="oto.mp3"></audio>
-
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
   <script>
-    let map = L.map('map').setView([26.2124, 127.6809], 8);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18
-    }).addTo(map);
-
-    let marker;
-    navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      marker = L.marker([latitude, longitude]).addTo(map);
-      map.setView([latitude, longitude], 9);
-    });
-
-    let shakeData = [];
-    let shakeStart = null;
     let currentShindo = 0;
-    let colorByShindo = shindo => {
-      if (shindo < 1) return 'black';
-      if (shindo < 4) return 'green';
-      if (shindo < 5) return 'yellow';
-      if (shindo < 7) return 'red';
-      return 'purple';
-    };
+    let stableDuration = 0;
+    let lastAccel = 0;
+    let timer;
+    let testMode = false;
 
-    if (window.DeviceMotionEvent) {
-      window.addEventListener("devicemotion", e => {
-        const acc = e.accelerationIncludingGravity;
-        const g = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
-        const gal = Math.round((g - 9.8) * 100);
-
-        const now = Date.now();
-        shakeData.push({ time: now, gal });
-        shakeData = shakeData.filter(d => now - d.time <= 3000);
-
-        const avg = shakeData.reduce((sum, d) => sum + Math.abs(d.gal), 0) / shakeData.length;
-        let shindo = 0;
-        if (avg > 20) shindo = 1;
-        if (avg > 50) shindo = 3;
-        if (avg > 100) shindo = 5;
-        if (avg > 150) shindo = 6;
-        if (avg > 200) shindo = 7;
-
-        if (shindo !== currentShindo) {
-          currentShindo = shindo;
-          document.getElementById("shindo").textContent = shindo;
-          document.getElementById("intensity").style.background = colorByShindo(shindo);
-          if (shindo >= 3) document.getElementById("alert").play();
-        }
-      });
+    function updateShindo(gal) {
+      const shindoScale = [0, 1, 2, 3, 4, 5, 5.5, 6, 6.5, 7];
+      const galScale = [0, 5, 20, 80, 250, 400, 800, 1120, 1400, 1600];
+      let shindo = 0;
+      for (let i = 0; i < galScale.length; i++) {
+        if (gal >= galScale[i]) shindo = shindoScale[i];
+      }
+      return shindo;
     }
 
     function requestSensorPermission() {
       if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission();
+        DeviceMotionEvent.requestPermission().then(response => {
+          if (response === 'granted') {
+            window.addEventListener('devicemotion', handleMotion);
+          }
+        });
+      } else {
+        window.addEventListener('devicemotion', handleMotion);
       }
     }
 
-    function startTest() {
-      document.getElementById("shindo").textContent = "5-";
-      document.getElementById("intensity").style.background = colorByShindo(5);
-      document.getElementById("area").textContent = "沖縄県那覇市";
-      document.getElementById("magnitude").textContent = "M6.8";
-      document.getElementById("tsunami").textContent = "津波の心配なし";
-      let countdown = 10;
-      const interval = setInterval(() => {
-        document.getElementById("countdown").textContent = `到達まで ${countdown} 秒`;
-        countdown--;
-        if (countdown < 0) clearInterval(interval);
-      }, 1000);
+    function handleMotion(event) {
+      const acc = event.accelerationIncludingGravity;
+      const gal = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z) * 100;
+      const delta = Math.abs(gal - lastAccel);
+      lastAccel = gal;
 
-      // 地震→震源→現在地へのズーム演出（疑似）
-      let testLat = 25.5, testLng = 127.2;
-      L.circle([testLat, testLng], { radius: 30000, color: 'blue' }).addTo(map);
-      map.setView([testLat, testLng], 7);
-      setTimeout(() => map.setView(marker.getLatLng(), 9), 3000);
+      if (delta > 10) {
+        stableDuration = 0;
+      } else {
+        stableDuration += 0.1;
+      }
+
+      if (stableDuration >= 3) {
+        const shindo = updateShindo(gal);
+        currentShindo = shindo;
+        document.getElementById('shindoCurrent').textContent = `震度 ${shindo}`;
+        updateColor(shindo);
+      } else {
+        document.getElementById('shindoCurrent').textContent = '震度 0';
+        updateColor(0);
+      }
+    }
+
+    function updateColor(shindo) {
+      let color = '#000';
+      if (shindo >= 7) color = 'purple';
+      else if (shindo >= 6) color = 'red';
+      else if (shindo >= 4) color = 'yellow';
+      else if (shindo >= 1) color = 'green';
+      document.body.style.backgroundColor = color;
+    }
+
+    function startTest() {
+      testMode = true;
+      document.getElementById('shindoPredict').textContent = '予測震度: 5-';
+      document.getElementById('countdown').textContent = 'あと 15 秒';
+      document.getElementById('earthquakeInfo').innerHTML = '震源地: 琉球トラフ<br>マグニチュード: 7.8';
+      document.getElementById('tsunamiInfo').textContent = '津波の恐れがあります';
+      setTimeout(() => {
+        document.getElementById('shindoCurrent').textContent = '震度 5-';
+        updateColor(5.5);
+      }, 15000);
+    }
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+  <script>
+    let map;
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 8,
+        center: { lat: 26.5, lng: 127.9 },
+      });
+      new google.maps.Marker({
+        position: { lat: 26.5, lng: 127.9 },
+        map,
+      });
     }
   </script>
 </body>
