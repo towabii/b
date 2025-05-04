@@ -1,43 +1,90 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>振動感知サイト</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-        }
-        #message {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff0000;
-            display: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>振動感知サイト</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    #message {
+      font-size: 24px;
+      font-weight: bold;
+      color: #ff0000;
+      display: none;
+    }
+    #strength {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+    #permission-button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
-    <h1>振動を感知するサイト</h1>
-    <p>スマートフォンやタブレットで動かしてみてください。</p>
-    <div id="message">振動感知！</div>
+  <h1>振動を感知するサイト</h1>
+  <p>スマートフォンやタブレットで動かしてみてください。</p>
 
-    <script>
-        if (window.DeviceMotionEvent) {
-            window.addEventListener('devicemotion', function(event) {
-                let acceleration = event.acceleration;
-                
-                // 加速度の値が閾値を超えたとき
-                if (Math.abs(acceleration.x) > 10 || Math.abs(acceleration.y) > 10 || Math.abs(acceleration.z) > 10) {
-                    document.getElementById('message').style.display = 'block'; // 振動感知メッセージ表示
-                } else {
-                    document.getElementById('message').style.display = 'none'; // 振動感知メッセージ非表示
-                }
-            });
+  <div id="message">⚠️ 強い振動を感知しました！</div>
+  <div id="strength">揺れの大きさ: 0</div>
+
+  <button id="permission-button">振動検知を許可</button>
+
+  <script>
+    document.getElementById('permission-button').addEventListener('click', function() {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        // iOS用の許可取得
+        DeviceMotionEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              startMotionDetection();
+              this.style.display = 'none';
+            } else {
+              alert('センサー使用が許可されませんでした。');
+            }
+          })
+          .catch(console.error);
+      } else {
+        // Androidなど
+        startMotionDetection();
+        this.style.display = 'none';
+      }
+    });
+
+    function startMotionDetection() {
+      window.addEventListener('devicemotion', function(event) {
+        const acc = event.acceleration;
+        if (!acc) return;
+
+        const x = acc.x || 0;
+        const y = acc.y || 0;
+        const z = acc.z || 0;
+
+        // 揺れの大きさ（3軸ベクトルの合成）
+        const strength = Math.sqrt(x * x + y * y + z * z).toFixed(2);
+
+        // 数値表示
+        document.getElementById('strength').textContent = `揺れの大きさ: ${strength}`;
+
+        // 一定以上で警告表示
+        if (strength > 15) {
+          document.getElementById('message').style.display = 'block';
         } else {
-            alert('この端末では加速度センサーを使用できません。');
+          document.getElementById('message').style.display = 'none';
         }
-    </script>
+      });
+    }
+  </script>
 </body>
 </html>
