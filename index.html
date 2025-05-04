@@ -9,6 +9,8 @@
       font-family: sans-serif;
       text-align: center;
       padding: 20px;
+      overflow: hidden;
+      margin: 0;
     }
     #intensity {
       font-size: 48px;
@@ -16,7 +18,7 @@
       color: #e63946;
       margin-top: 30px;
     }
-    #earthquake-info, #time-info {
+    #earthquake-info, #time-info, #warning {
       margin-top: 20px;
       font-size: 18px;
       color: #1d3557;
@@ -36,6 +38,18 @@
       height: 400px;
       margin-top: 30px;
     }
+    /* 横向き表示 */
+    @media (orientation: landscape) {
+      body {
+        font-size: 18px;
+      }
+      #intensity {
+        font-size: 60px;
+      }
+      #map {
+        height: 50vh;
+      }
+    }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -47,16 +61,23 @@
   <div id="intensity">震度：0</div>
   <div id="earthquake-info">最新の地震情報はここに表示されます。</div>
   <div id="time-info">地震到達までの予測時間：0秒</div>
+  <div id="warning" style="display:none; color: red; font-size: 20px;">揺れが続いています！</div>
   
   <button id="permission-button">センサーを許可</button>
 
   <div id="map"></div> <!-- 地図表示エリア -->
 
   <script>
-    // 位置情報（ユーザーの現在位置）を取得
     let userLat, userLon;
+    let lastShakeTime = 0;
+    let shakeCounter = 0;
+    let lastShakeValue = 0;
+    const shakeThreshold = 1.5; // 揺れのしきい値（gal）
+    const shakeDurationThreshold = 10; // 揺れが続く時間（秒）
 
-    // 現在地を取得
+    const shakeHistory = [];
+
+    // 位置情報（ユーザーの現在位置）を取得
     function getUserLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -110,7 +131,6 @@
 
     // 地図の更新
     function updateMap(lat, lon) {
-      console.log("震源地の緯度:", lat, "経度:", lon); // デバッグ用
       if (!lat || !lon) {
         console.error("震源地の位置情報が無効です。");
         return;
@@ -183,6 +203,26 @@
         // 揺れの強さ（震度）の計算
         const intensity = toIntensity(gal);
         document.getElementById('intensity').textContent = `震度：${intensity}`;
+
+        // 震度3以上で音声再生
+        if (intensity >= 3) {
+          playSound();
+        }
+
+        // 10秒間同じ揺れを続けた場合に警告表示
+        if (Math.abs(gal - lastShakeValue) < shakeThreshold) {
+          shakeCounter++;
+        } else {
+          shakeCounter = 0;
+        }
+
+        if (shakeCounter >= 10) {
+          document.getElementById('warning').style.display = 'block';
+        } else {
+          document.getElementById('warning').style.display = 'none';
+        }
+
+        lastShakeValue = gal; // 揺れの値を更新
       });
     }
 
@@ -198,6 +238,12 @@
       if (gal < 700) return "6弱";
       if (gal < 850) return "6強";
       return 7;
+    }
+
+    // oto.mp3 を再生する
+    function playSound() {
+      const audio = new Audio('oto.mp3');
+      audio.play();
     }
 
     // 初期設定と定期的な地震情報の取得
