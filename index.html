@@ -7,24 +7,54 @@
   <style>
     body {
       font-family: sans-serif;
-      text-align: center;
-      padding: 20px;
-      overflow: hidden;
       margin: 0;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      background-color: #f1f1f1;
+    }
+    #left-panel {
+      width: 60%;
+      height: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    #right-panel {
+      width: 40%;
+      height: 100%;
+      background-color: #1d3557;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
     }
     #intensity {
-      font-size: 48px;
+      font-size: 100px;
       font-weight: bold;
-      color: #e63946;
-      margin-top: 30px;
-    }
-    #earthquake-info, #time-info, #warning {
       margin-top: 20px;
-      font-size: 18px;
-      color: #1d3557;
+    }
+    #earthquake-info, #time-info {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+    #warning {
+      display: none;
+      font-size: 24px;
+      color: red;
+      margin-top: 20px;
+    }
+    #map {
+      height: 40%;
+      width: 100%;
+      margin-top: 20px;
     }
     #permission-button {
-      margin-top: 30px;
       padding: 12px 24px;
       font-size: 18px;
       background-color: #1d3557;
@@ -32,22 +62,27 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
-    }
-    #map {
-      width: 100%;
-      height: 400px;
       margin-top: 30px;
     }
-    /* 横向き表示 */
+    /* 横向きレイアウト */
     @media (orientation: landscape) {
       body {
-        font-size: 18px;
+        flex-direction: row;
+      }
+      #left-panel {
+        width: 60%;
+      }
+      #right-panel {
+        width: 40%;
       }
       #intensity {
-        font-size: 60px;
+        font-size: 120px;
       }
-      #map {
-        height: 50vh;
+      #earthquake-info, #time-info {
+        font-size: 18px;
+      }
+      #warning {
+        font-size: 28px;
       }
     }
   </style>
@@ -55,17 +90,18 @@
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 </head>
 <body>
-  <h1>スマホで震度チェッカー</h1>
-  <p>スマホを机や地面に置いて揺れを検知します。</p>
+  <div id="left-panel">
+    <div id="earthquake-info">最新の地震情報がここに表示されます。</div>
+    <div id="time-info">地震到達までの予測時間：0秒</div>
+    <div id="warning">揺れが続いています！</div>
+    <div id="map"></div> <!-- 地図表示エリア -->
+  </div>
   
-  <div id="intensity">震度：0</div>
-  <div id="earthquake-info">最新の地震情報はここに表示されます。</div>
-  <div id="time-info">地震到達までの予測時間：0秒</div>
-  <div id="warning" style="display:none; color: red; font-size: 20px;">揺れが続いています！</div>
-  
-  <button id="permission-button">センサーを許可</button>
-
-  <div id="map"></div> <!-- 地図表示エリア -->
+  <div id="right-panel">
+    <h1>震度表示</h1>
+    <div id="intensity">震度：0</div>
+    <button id="permission-button">センサーを許可</button>
+  </div>
 
   <script>
     let userLat, userLon;
@@ -136,7 +172,7 @@
         return;
       }
 
-      const map = L.map('map').setView([lat, lon], 6); // 初期表示位置
+      const map = L.map('map').setView([lat, lon], 12); // 震源地のアップ表示
 
       // 地図タイル（国土地理院）
       L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
@@ -155,19 +191,6 @@
           .bindPopup(`<b>現在地:</b> ${userLat}, ${userLon}`)
           .openPopup();
       }
-    }
-
-    // 2点間の距離を計算（ハーサイン法）
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371; // 地球の半径（km）
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c; // 距離（km）
-      return distance;
     }
 
     // センサー許可後に地震を検知
@@ -246,10 +269,9 @@
       audio.play();
     }
 
-    // 初期設定と定期的な地震情報の取得
+    // ページの読み込み時に位置情報と地震情報を取得
     getUserLocation();
-    setInterval(fetchEarthquakeInfo, 60000); // 1分毎に地震情報を更新
-    fetchEarthquakeInfo(); // 初回取得
+    fetchEarthquakeInfo();
   </script>
 </body>
 </html>
