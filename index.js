@@ -3,10 +3,8 @@ let userLon = null;
 let map = null;
 let pWaveCircle = null;
 let sWaveCircle = null;
-let tsunamiLine = null; // 津波表示用
+let tsunamiLine = null; // 津波線用
 let tsunamiEffect = false; // 津波が来るかどうか
-let magnitude = null;
-let depth = null;
 
 navigator.geolocation.getCurrentPosition(pos => {
   userLat = pos.coords.latitude;
@@ -34,15 +32,15 @@ window.addEventListener("devicemotion", e => {
 });
 
 function updateShindo(level) {
-  const panel = document.getElementById("panel-shindo-left");
-  panel.textContent = `実際の震度：${level}`;
-  panel.style.backgroundColor = getColor(level);
-  updateTsunamiWarning(level); // 津波警報の更新
-}
+  const leftPanel = document.getElementById("left-shindo");
+  const rightPanel = document.getElementById("right-shindo");
+  leftPanel.textContent = `実際の震度：${level}`;
+  leftPanel.style.backgroundColor = getColor(level);
 
-function updatePredictionShindo(level) {
-  const panel = document.getElementById("panel-shindo-right");
-  panel.textContent = `予測震度：${level}`;
+  // 気象庁の震度（仮の値を使ってテスト）
+  const meteorologicalShindo = Math.min(7, Math.floor(level / 2)); // 仮で計算
+  rightPanel.textContent = `気象庁の震度：${meteorologicalShindo}`;
+  rightPanel.style.backgroundColor = getColor(meteorologicalShindo);
 }
 
 function getColor(level) {
@@ -52,27 +50,29 @@ function getColor(level) {
   return "lightgreen";
 }
 
+function detectQuake(shindo) {
+  updateShindo(shindo);
+  updateTsunamiWarning(shindo);
+}
+
 function updateTsunamiWarning(level) {
-  // 津波警報エリアの色付け
   if (level >= 4) {
     tsunamiEffect = true;
     let color = level >= 7 ? 'purple' : level >= 5 ? 'red' : 'yellow';
-    drawTsunamiLine(color);
+    if (tsunamiLine) map.removeLayer(tsunamiLine);
+
+    // 仮で沿岸線を作る（簡単な直線として）
+    tsunamiLine = L.polyline([
+      [userLat, userLon],
+      [userLat + 0.1, userLon + 0.2]
+    ], {
+      color: color,
+      weight: 5
+    }).addTo(map);
   } else {
     if (tsunamiLine) map.removeLayer(tsunamiLine);
     tsunamiEffect = false;
   }
-}
-
-function drawTsunamiLine(color) {
-  const tsunamiCoordinates = [
-    [26.3, 127.5], // 仮の沿岸部の座標（沖縄の例）
-    [27.3, 128.5]  // 震源地と沿岸部をつなぐライン
-  ];
-
-  if (tsunamiLine) map.removeLayer(tsunamiLine);
-
-  tsunamiLine = L.polyline(tsunamiCoordinates, { color: color, weight: 4 }).addTo(map);
 }
 
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -83,20 +83,6 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
             Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
             Math.sin(dLon/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function startWaveCountdown(epiLat, epiLon) {
-  const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 7);  // P波の速度は約7km/s
-  const sTime = Math.floor(dist / 3.5); // S波の速度は約3.5km/s
-  let t = 0;
-  const interval = setInterval(() => {
-    const pRemain = Math.max(pTime - t, 0);
-    const sRemain = Math.max(sTime - t, 0);
-    document.getElementById("panel-timer").textContent = `P波: ${pRemain}s / S波: ${sRemain}s`;
-    if (pRemain === 0 && sRemain === 0) clearInterval(interval);
-    t++;
-  }, 1000);
 }
 
 function showEpicenterAndWaves(epiLat, epiLon) {
@@ -115,8 +101,6 @@ function showEpicenterAndWaves(epiLat, epiLon) {
       iconAnchor: [16, 16]
     });
     L.marker([epiLat, epiLon], { icon: xIcon }).addTo(map).bindPopup("震源地");
-
-    startWaveCountdown(epiLat, epiLon);
 
     let rP = 0, rS = 0;
     if (pWaveCircle) map.removeLayer(pWaveCircle);
@@ -138,15 +122,6 @@ function showEpicenterAndWaves(epiLat, epiLon) {
 document.getElementById("testButton").addEventListener("click", () => {
   const ryukyuLat = 26.3;
   const ryukyuLon = 127.5;
-  magnitude = 7;  // テストでマグニチュード7を設定
-  depth = 20;  // テストで深さ20kmを設定
-  updateShindo(7); // 実際の震度（加速度に基づく）
-  updatePredictionShindo(7); // 予測震度（気象庁の震度）
+  updateShindo(7); // テストで震度7を表示
   showEpicenterAndWaves(ryukyuLat, ryukyuLon);
-  displayMagnitudeAndDepth(); // マグニチュードと深さを表示
 });
-
-function displayMagnitudeAndDepth() {
-  const panel = document.getElementById("panel-magnitude-depth");
-  panel.textContent = `マグニチュード: ${magnitude} 深さ: ${depth} km`;
-}
