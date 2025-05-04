@@ -3,8 +3,7 @@ let userLon = null;
 let map = null;
 let pWaveCircle = null;
 let sWaveCircle = null;
-let tsunamiAreas = []; // 津波被害地域
-let shakeHistory = []; // 加速度履歴
+let tsunamiAlert = false;
 
 navigator.geolocation.getCurrentPosition(pos => {
   userLat = pos.coords.latitude;
@@ -16,55 +15,79 @@ navigator.geolocation.getCurrentPosition(pos => {
   L.marker([userLat, userLon]).addTo(map).bindPopup("現在地");
 });
 
-// 加速度履歴の管理
+let shakeHistory = [];
 window.addEventListener("devicemotion", e => {
   const acc = e.accelerationIncludingGravity;
   if (!acc) return;
   const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
-
   shakeHistory.push({ time: Date.now(), magnitude });
   shakeHistory = shakeHistory.filter(d => Date.now() - d.time < 3000);
 
-  // 3秒以上同じような揺れ
   const avg = shakeHistory.reduce((a, b) => a + b.magnitude, 0) / shakeHistory.length;
-  let shindo = calculateShindo(avg);
+  let shindo = convertToShindo(avg);
 
   if (avg > 12) detectQuake(shindo);
   updateShindo(shindo);
 });
 
-// 震度に変換
-function calculateShindo(accMagnitude) {
-  let shindo = 0;
-  // 震度1～7のガル換算（参考値）
-  if (accMagnitude >= 0.7 && accMagnitude < 1.5) shindo = 1;
-  else if (accMagnitude >= 1.5 && accMagnitude < 2.5) shindo = 2;
-  else if (accMagnitude >= 2.5 && accMagnitude < 3.5) shindo = 3;
-  else if (accMagnitude >= 3.5 && accMagnitude < 4.5) shindo = 4;
-  else if (accMagnitude >= 4.5 && accMagnitude < 5.5) shindo = 5;
-  else if (accMagnitude >= 5.5 && accMagnitude < 6.5) shindo = 6;
-  else if (accMagnitude >= 6.5) shindo = 7;
-
-  return shindo;
-}
-
-function updateShindo(shindo) {
+function updateShindo(level) {
   const panel = document.getElementById("panel-shindo");
-  const panelShindo = `実際の震度：${shindo}（スマホ加速度）`;
-  panel.textContent = panelShindo;
-  panel.style.backgroundColor = getColor(shindo);
+  let shindoText = `震度：${level}`;
+  if (level === 6) {
+    shindoText += "強";
+  } else if (level === 5) {
+    shindoText += "+";
+  } else if (level > 5) {
+    shindoText += "強";
+  }
+  panel.textContent = shindoText;
+  panel.style.backgroundColor = getColor(level);
 }
 
-function getColor(shindo) {
-  if (shindo >= 7) return "purple";
-  if (shindo >= 6) return "red";
-  if (shindo >= 4) return "yellow";
+function convertToShindo(gal) {
+  // gal -> 震度変換
+  if (gal < 1) return 0;
+  if (gal < 3) return 1;
+  if (gal < 5) return 2;
+  if (gal < 8) return 3;
+  if (gal < 12) return 4;
+  if (gal < 18) return 5;
+  if (gal < 30) return 6;
+  return 7;
+}
+
+function getColor(level) {
+  if (level >= 7) return "purple";
+  if (level >= 6) return "red";
+  if (level >= 4) return "yellow";
   return "lightgreen";
 }
 
-function detectQuake(shindo) {
-  console.log("地震検出:", shindo);
-  // 気象庁の震度情報も利用
+function detectQuake(level) {
+  console.log("地震検出:", level);
+  if (level >= 4) {
+    tsunamiAlert = true;
+    document.getElementById("panel-tsunami").textContent = "津波警報: 発生";
+    // 津波エリアを色塗り
+    drawTsunamiArea(level);
+  }
+}
+
+function drawTsunamiArea(shindo) {
+  // 津波エリアを色塗り
+  const tsunamiArea = L.polygon([
+    [userLat - 0.5, userLon - 0.5], // 仮の範囲
+    [userLat - 0.5, userLon + 0.5],
+    [userLat + 0.5, userLon + 0.5],
+    [userLat + 0.5, userLon - 0.5]
+  ], { color: getTsunamiColor(shindo) }).addTo(map);
+}
+
+function getTsunamiColor(shindo) {
+  if (shindo >= 6) return "purple";
+  if (shindo >= 5) return "red";
+  if (shindo >= 4) return "yellow";
+  return "green";
 }
 
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -72,12 +95,11 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) ** 2;
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// P波とS波の到達をカウントダウン
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
   const pTime = Math.floor(dist / 6);
@@ -127,28 +149,9 @@ function showEpicenterAndWaves(epiLat, epiLon) {
   }, 3000);
 }
 
-// 津波エリアの表示
-function showTsunamiAlert(epiLat, epiLon, shindo) {
-  // 震源地から津波の到達地域を計算
-  const tsunamiRadius = (shindo >= 6) ? 100 : (shindo >= 4) ? 50 : 0;
-  if (tsunamiRadius === 0) return;
-
-  const tsunamiArea = L.circle([epiLat, epiLon], { radius: tsunamiRadius * 1000, color: getTsunamiColor(shindo), fillOpacity: 0.3 });
-  tsunamiArea.addTo(map).bindPopup("津波警報エリア");
-
-  tsunamiAreas.push(tsunamiArea);
-}
-
-function getTsunamiColor(shindo) {
-  if (shindo >= 6) return "purple";
-  if (shindo >= 4) return "red";
-  return "yellow";
-}
-
 document.getElementById("testButton").addEventListener("click", () => {
   const ryukyuLat = 26.3;
   const ryukyuLon = 127.5;
   updateShindo(7);
   showEpicenterAndWaves(ryukyuLat, ryukyuLon);
-  showTsunamiAlert(ryukyuLat, ryukyuLon, 7);
 });
