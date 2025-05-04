@@ -92,3 +92,20 @@ function showEpicenterAndWaves(lat, lon) {
 setTimeout(() => {
   showEpicenterAndWaves(35.6895, 139.6917); // 例: 東京付近
 }, 5000); // 5秒後に震源地を表示（テスト用）
+
+// === テスト用：琉球トラフで震度7の地震 ===
+setTimeout(() => {
+  const epicenterLat = 24.0; // 琉球トラフ付近（緯度）
+  const epicenterLon = 129.5; // 琉球トラフ付近（経度）
+
+  // マップに震源地と波を表示
+  showEpicenterAndWaves(epicenterLat, epicenterLon);
+
+  // 震度7として表示
+  const simulatedShindo = 7;
+  document.getElementById('local-shindo').textContent = `震度: ${simulatedShindo}（テスト地震）`;
+  updateColor(simulatedShindo);
+
+  // 地図側も色更新
+  document.getElementById('panel-map').style.backgroundColor = 'purple';
+}, 5000); // ページ読み込み5秒後に実行
