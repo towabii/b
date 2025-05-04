@@ -31,14 +31,9 @@ window.addEventListener("devicemotion", e => {
 });
 
 function updateShindo(level) {
-  const realShindoPanel = document.getElementById("real-shindo");
-  realShindoPanel.textContent = `実際の震度：${level}`;
-  realShindoPanel.style.backgroundColor = getColor(level);
-}
-
-function updateOfficialShindo(level) {
-  const officialShindoPanel = document.getElementById("official-shindo");
-  officialShindoPanel.textContent = `気象庁震度：${level}`;
+  const panel = document.getElementById("panel-shindo");
+  panel.textContent = `震度：${level}`;
+  panel.style.backgroundColor = getColor(level);
 }
 
 function getColor(level) {
@@ -48,18 +43,25 @@ function getColor(level) {
   return "lightgreen";
 }
 
+function detectQuake(level) {
+  console.log("地震検出:", level);
+  // 必要であれば追加処理
+}
+
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLon/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 7);  // P波: 7 km/s
-  const sTime = Math.floor(dist / 3.5); // S波: 3.5 km/s
+  const pTime = Math.floor(dist / 6);
+  const sTime = Math.floor(dist / 3.5);
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
@@ -89,40 +91,57 @@ function showEpicenterAndWaves(epiLat, epiLon) {
 
     startWaveCountdown(epiLat, epiLon);
 
+    let rP = 0, rS = 0;
     if (pWaveCircle) map.removeLayer(pWaveCircle);
     if (sWaveCircle) map.removeLayer(sWaveCircle);
-    
+
     pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.3 }).addTo(map);
     sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
 
-    let rP = 0, rS = 0;
     let interval = setInterval(() => {
-      rP += 700; rS += 350;
+      rP += 600; rS += 350;
       pWaveCircle.setRadius(rP);
       sWaveCircle.setRadius(rS);
-      if (rS > 300000) {
-        clearInterval(interval);
-        pWaveCircle.remove();
-        sWaveCircle.remove();
-      }
+      if (rS > 300000) clearInterval(interval);
     }, 100);
   }, 3000);
 }
 
-function drawTsunamiLine(lat1, lon1, lat2, lon2) {
-  const tsunamiColor = "blue";
-  const lineCoordinates = [[lat1, lon1], [lat2, lon2]];
+function drawTsunamiWarning(epiLat, epiLon, level) {
+  const distance = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
+  let tsunamiTime = Math.floor(distance / 3); // 津波到達予測 (秒速3km)
+
+  // 津波予測範囲の色
+  let color = "yellow";
+  if (level >= 4) color = "red";
+  if (level >= 6) color = "purple";
+
   if (tsunamiLine) map.removeLayer(tsunamiLine);
-  tsunamiLine = L.polyline(lineCoordinates, { color: tsunamiColor, weight: 5 }).addTo(map);
+
+  tsunamiLine = L.polyline([
+    [epiLat, epiLon],
+    [userLat, userLon]
+  ], {
+    color: color,
+    weight: 4,
+    opacity: 0.7
+  }).addTo(map);
+
+  document.getElementById("panel-tsunami").textContent = `津波到達予測: ${tsunamiTime}s`;
+
+  let t = 0;
+  const interval = setInterval(() => {
+    tsunamiTime = Math.max(tsunamiTime - t, 0);
+    document.getElementById("panel-tsunami").textContent = `津波到達予測: ${tsunamiTime}s`;
+    if (tsunamiTime === 0) clearInterval(interval);
+    t++;
+  }, 1000);
 }
 
-function detectQuake(shindo) {
-  const magnitude = Math.random() * 3 + 5; // Random magnitude 5-8
-  const depth = Math.random() * 700 + 0; // Random depth 0-700km
-  const epiLat = userLat + (Math.random() - 0.5) * 1; // Random epicenter position
-  const epiLon = userLon + (Math.random() - 0.5) * 1;
-  document.getElementById("magnitude").textContent = `マグニチュード: ${magnitude.toFixed(2)}`;
-  document.getElementById("depth").textContent = `深さ: ${depth.toFixed(0)} km`;
-
-  showEpicenterAndWaves(epiLat, epiLon);
-}
+document.getElementById("testButton").addEventListener("click", () => {
+  const ryukyuLat = 26.3;
+  const ryukyuLon = 127.5;
+  updateShindo(7);
+  showEpicenterAndWaves(ryukyuLat, ryukyuLon);
+  drawTsunamiWarning(ryukyuLat, ryukyuLon, 7);
+});
