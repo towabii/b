@@ -31,7 +31,14 @@
       font-size: 18px;
       color: #1d3557;
     }
+    #map {
+      width: 100%;
+      height: 400px;
+      margin-top: 30px;
+    }
   </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 </head>
 <body>
   <h1>スマホで震度チェック</h1>
@@ -41,6 +48,8 @@
   <div id="earthquake-info">最新の地震情報はここに表示されます。</div>
   
   <button id="permission-button">センサーを許可</button>
+
+  <div id="map"></div> <!-- 地図表示エリア -->
 
   <script>
     document.getElementById('permission-button').addEventListener('click', function () {
@@ -71,11 +80,33 @@
             発生時刻: ${new Date(earthquake.time * 1000).toLocaleString()}
           `;
           document.getElementById('earthquake-info').innerHTML = earthquakeInfo;
+
+          // 震源地の緯度・経度を地図上にマーカー表示
+          const lat = earthquake.latitude;  // 緯度
+          const lon = earthquake.longitude; // 経度
+          updateMap(lat, lon);
         })
         .catch(error => console.error('地震情報の取得エラー:', error));
     }
 
-    // 気象庁の震度変換
+    // 地図の更新
+    function updateMap(lat, lon) {
+      // 地図の表示設定
+      const map = L.map('map').setView([lat, lon], 6); // 初期表示位置
+
+      // 地図タイル（国土地理院）
+      L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.gsi.go.jp/kiban/index.html">国土地理院</a>',
+        maxZoom: 18
+      }).addTo(map);
+
+      // 震源地をマーカーとして表示
+      L.marker([lat, lon]).addTo(map)
+        .bindPopup(`<b>震源地:</b> ${lat}, ${lon}`)
+        .openPopup();
+    }
+
+    // 気象庁の震度階級変換
     function toIntensity(gal) {
       if (gal < 2.5) return 0;
       if (gal < 8) return 1;
