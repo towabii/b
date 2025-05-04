@@ -1,32 +1,31 @@
-#main-container {
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #f0f0f0;
+}
+#container {
   display: grid;
-  grid-template-rows: 50% 50%;
-  grid-template-columns: 50% 50%;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 50vh 50vh;
   height: 100vh;
 }
-
-#top-left, #top-right, #bottom-left, #bottom-right {
+.panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2em;
+  border: 1px solid #ccc;
   padding: 10px;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  font-size: 16px;
+  box-sizing: border-box;
 }
-
 #map {
-  grid-row: span 2;
-  grid-column: span 2;
+  width: 100%;
+  height: 100%;
 }
-
-button {
+#testButton {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  padding: 10px 20px;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-#panel-shindo, #panel-shindo-gov, #panel-timer, #panel-magnitude, #panel-depth, #panel-duration {
-  font-size: 18px;
-  margin: 5px 0;
+  bottom: 10px;
+  left: 10px;
+  padding: 10px;
+  font-size: 1em;
 }
