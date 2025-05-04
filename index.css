@@ -27,6 +27,6 @@ body {
   padding: 10px;
   font-size: 1em;
 }
-#panel-shindo, #panel-shindo-acc {
+#panel-shindo {
   font-size: 2.5em; /* 震度部分を大きく */
 }
