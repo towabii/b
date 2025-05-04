@@ -1,34 +1,21 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>地震ダッシュボード</title>
-  <link rel="stylesheet" href="index.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>地震チェッカー</title>
+  <link rel="stylesheet" href="index.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-  <div class="grid">
-    <div class="panel" id="panel-shindo">
-      <h2>実際の震度</h2>
-      <p id="local-shindo">震度: 0</p>
-    </div>
-    <div class="panel" id="panel-timer">
-      <h2>揺れの予測</h2>
-      <p id="wave-timer">-- 秒後に揺れ</p>
-    </div>
-    <div class="panel" id="panel-map">
-      <h2>地震地図</h2>
-      <div id="map"></div>
-      <p id="jma-shindo">気象庁震度: --</p>
-    </div>
-    <div class="panel" id="panel-tsunami">
-      <h2>津波情報</h2>
-      <p id="tsunami-info">現在、津波情報はありません。</p>
-    </div>
+  <div id="container">
+    <div id="panel-shindo" class="panel">震度：---</div>
+    <div id="panel-map" class="panel"><div id="map"></div></div>
+    <div id="panel-timer" class="panel">P波: --s / S波: --s</div>
+    <div id="panel-tsunami" class="panel">津波情報：なし</div>
   </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <button id="testButton">テスト地震発生</button>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="index.js"></script>
 </body>
 </html>
