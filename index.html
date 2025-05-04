@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアルタイム地震ビューアー</title>
+    <title>プログラミング体験</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="earthquake-info">
-        <h1>リアルタイム地震ビューアー</h1>
-        <div id="shindo">震度: 0</div>
-        <div id="magnitude">マグニチュード: 0.0</div>
-        <div id="location">場所: －</div>
-        <div id="time">発生時刻: －</div>
+    <div class="container">
+        <div class="blocks">
+            <div class="block" id="block1" draggable="true">→ (移動)</div>
+            <div class="block" id="block2" draggable="true">← (移動)</div>
+            <div class="block" id="block3" draggable="true">ジャンプ</div>
+        </div>
+
+        <div class="program-area" id="program-area">
+            <h2>ここにブロックをドラッグして、プログラムを作成しよう！</h2>
+        </div>
+
+        <button id="run-btn">実行</button>
     </div>
-
-    <div id="map"></div>
-
-    <button id="test-button">テスト地震発生</button>
 
     <script src="script.js"></script>
 </body>
