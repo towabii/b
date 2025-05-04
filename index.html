@@ -7,292 +7,175 @@
   <style>
     body {
       margin: 0;
-      padding: 0;
       font-family: sans-serif;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-      flex-direction: column;
-    }
-    #top-bar {
-      text-align: center;
-      font-size: 16px;
-      background-color: #1d3557;
+      background: #000;
       color: white;
-      padding: 10px 0;
-      width: 100%;
-    }
-    #main-content {
-      display: flex;
-      flex: 1;
-      flex-direction: row;
       overflow: hidden;
     }
-    #left-panel {
-      width: 35%;
-      padding: 20px;
+    #map {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 0;
+    }
+    .overlay {
+      position: absolute;
+      z-index: 2;
+      box-sizing: border-box;
+    }
+    #title {
+      top: 5px; left: 50%; transform: translateX(-50%);
+      font-size: 12px;
+      z-index: 3;
+    }
+    #intensity {
+      top: 0; left: 0; width: 50%; height: 50%;
+      font-size: 28px;
+      text-align: center;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      transition: background 0.5s;
+    }
+    #countdown {
+      left: 0; bottom: 0; width: 50%; height: 50%;
+      font-size: 20px;
+      display: flex; justify-content: center; align-items: center;
+      text-align: center;
+    }
+    #tsunami {
+      right: 0; top: 0; width: 50%; height: 50%;
+      font-size: 18px;
+      display: flex; justify-content: center; align-items: center;
+      text-align: center;
+    }
+    #controls {
+      right: 0; bottom: 0; width: 50%; height: 50%;
+      display: flex;
+      flex-direction: row;
+    }
+    #buttons, #info {
+      flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      background-color: #f1f1f1;
-      text-align: center;
+      font-size: 12px;
     }
-    #right-panel {
-      width: 65%;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+    button {
+      margin: 5px;
+      font-size: 14px;
     }
-    #intensity {
-      font-size: 150px;
-      font-weight: bold;
-      margin-top: 10px;
-      width: 100%;
-      text-align: center;
-      color: white;
-    }
-    #earthquake-info, #time-info {
-      font-size: 18px;
-      margin-top: 20px;
-    }
-    #warning {
-      font-size: 24px;
-      color: red;
-      display: none;
-      margin-top: 20px;
-    }
-    #map {
-      height: 300px;
-      width: 100%;
-      margin-top: 20px;
-    }
-    #tsunami-info {
-      font-size: 16px;
-      margin-top: 20px;
-    }
-    #seconds {
-      font-size: 32px;
-      font-weight: bold;
-      margin-top: 20px;
-    }
-    #permission-button {
-      padding: 12px 24px;
-      font-size: 18px;
-      background-color: #1d3557;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 30px;
-    }
-    #test-button {
-      padding: 12px 24px;
-      font-size: 18px;
-      background-color: #ff9900;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-
-    /* 横向きレイアウト */
-    @media (orientation: landscape) {
-      #main-content {
-        flex-direction: row;
-      }
-      #left-panel {
-        width: 35%;
-      }
-      #right-panel {
-        width: 65%;
-      }
+    .background {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 1;
+      background-color: black;
+      opacity: 0.5;
     }
   </style>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 </head>
 <body>
-  <div id="top-bar">震度チェッカー</div>
-  <div id="main-content">
-    <div id="left-panel">
-      <div id="intensity">震度 0</div>
-      <div id="earthquake-info">地震情報</div>
-      <div id="map"></div>
+  <div id="map"></div>
+  <div class="background"></div>
+
+  <div id="title" class="overlay">震度チェッカー</div>
+
+  <div id="intensity" class="overlay">
+    <div style="font-size: 10px;">震度</div>
+    <div id="shindo">0</div>
+  </div>
+  <div id="countdown" class="overlay">到達まで - 秒</div>
+  <div id="tsunami" class="overlay">発表なし</div>
+
+  <div id="controls" class="overlay">
+    <div id="buttons">
+      <button onclick="startTest()">テスト</button>
+      <button onclick="requestSensorPermission()">センサー許可</button>
     </div>
-    <div id="right-panel">
-      <div id="time-info">P波到達まで: 0秒<br>S波到達まで: 0秒</div>
-      <div id="seconds">残り時間: 0秒</div>
-      <div id="tsunami-info">津波予測情報: なし</div>
-      <button id="permission-button">センサーを許可</button>
-      <button id="test-button">テスト</button>
+    <div id="info">
+      <div id="area">--</div>
+      <div id="magnitude">--</div>
     </div>
   </div>
 
+  <audio id="alert" src="oto.mp3"></audio>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
   <script>
-    let userLat, userLon;
-    let lastShakeValue = 0;
-    let shakeCounter = 0;
-    let shakeHistory = [];
-    let earthquakeLocationLat, earthquakeLocationLon;
-    const shakeThreshold = 1.5; // 揺れのしきい値（gal）
-    const shakeDurationThreshold = 3; // 揺れが続く時間（秒）
-    const shakeColorThreshold = 5; // 揺れの色のタイミング（秒）
-    const colors = {
-      0: "green",  // 震度0
-      1: "green",  // 震度1
-      2: "green",  // 震度2
-      3: "yellow", // 震度3
-      4: "yellow", // 震度4
-      5: "red",    // 震度5
-      6: "red",    // 震度6
-      7: "purple"  // 震度7
-    };
+    let map = L.map('map').setView([26.2124, 127.6809], 8);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18
+    }).addTo(map);
 
-    // 位置情報取得
-    function getUserLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-          userLat = position.coords.latitude;
-          userLon = position.coords.longitude;
-          updateMap(userLat, userLon); // 現在地の地図更新
-        });
-      }
-    }
-
-    // 地震情報の取得
-    function fetchEarthquakeInfo() {
-      fetch('https://api.p2pquake.net/v1/quake/now.json')
-        .then(response => response.json())
-        .then(data => {
-          const earthquake = data.results[0];
-          earthquakeLocationLat = earthquake.lat;
-          earthquakeLocationLon = earthquake.lon;
-
-          const earthquakeInfo = `
-            震源地: ${earthquake.origin} <br>
-            発生時刻: ${new Date(earthquake.time * 1000).toLocaleString()}
-          `;
-          document.getElementById('earthquake-info').innerHTML = earthquakeInfo;
-
-          updateMap(earthquakeLocationLat, earthquakeLocationLon); // 地震の発生地点を地図に表示
-          setTimeout(() => updateMap(userLat, userLon), 2000); // 現在地の表示
-        })
-        .catch(error => console.error('地震情報の取得エラー:', error));
-    }
-
-    // 地図表示
-    function updateMap(lat, lon) {
-      const map = L.map('map').setView([lat, lon], 12);
-
-      L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.gsi.go.jp/kiban/index.html">国土地理院</a>',
-        maxZoom: 18
-      }).addTo(map);
-
-      L.marker([lat, lon]).addTo(map)
-        .bindPopup(`<b>場所:</b> ${lat}, ${lon}`)
-        .openPopup();
-    }
-
-    // 揺れを検出
-    document.getElementById('permission-button').addEventListener('click', function () {
-      if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission().then(response => {
-          if (response === 'granted') {
-            startDetecting();
-            this.style.display = 'none';
-          } else {
-            alert("センサー使用が許可されませんでした。");
-          }
-        }).catch(console.error);
-      } else {
-        startDetecting();
-        this.style.display = 'none';
-      }
+    let marker;
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      marker = L.marker([latitude, longitude]).addTo(map);
+      map.setView([latitude, longitude], 9);
     });
 
-    // 揺れを計測する
-    function startDetecting() {
-      window.addEventListener('devicemotion', function (event) {
-        const acc = event.acceleration;
-        if (!acc) return;
+    let shakeData = [];
+    let shakeStart = null;
+    let currentShindo = 0;
+    let colorByShindo = shindo => {
+      if (shindo < 1) return 'black';
+      if (shindo < 4) return 'green';
+      if (shindo < 5) return 'yellow';
+      if (shindo < 7) return 'red';
+      return 'purple';
+    };
 
-        const x = acc.x || 0;
-        const y = acc.y || 0;
-        const z = acc.z || 0;
+    if (window.DeviceMotionEvent) {
+      window.addEventListener("devicemotion", e => {
+        const acc = e.accelerationIncludingGravity;
+        const g = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
+        const gal = Math.round((g - 9.8) * 100);
 
-        const value = Math.sqrt(x * x + y * y + z * z);
-        const gal = value * 100;
+        const now = Date.now();
+        shakeData.push({ time: now, gal });
+        shakeData = shakeData.filter(d => now - d.time <= 3000);
 
-        // 揺れの強さ（震度）の計算
-        const intensity = toIntensity(gal);
-        updateIntensity(intensity);
+        const avg = shakeData.reduce((sum, d) => sum + Math.abs(d.gal), 0) / shakeData.length;
+        let shindo = 0;
+        if (avg > 20) shindo = 1;
+        if (avg > 50) shindo = 3;
+        if (avg > 100) shindo = 5;
+        if (avg > 150) shindo = 6;
+        if (avg > 200) shindo = 7;
 
-        // 震度の色変更
-        document.getElementById('intensity').style.color = colors[intensity];
-
-        // 3秒間同じ揺れを続けた場合に震度表示
-        if (Math.abs(gal - lastShakeValue) < shakeThreshold) {
-          shakeCounter++;
-        } else {
-          shakeCounter = 0;
+        if (shindo !== currentShindo) {
+          currentShindo = shindo;
+          document.getElementById("shindo").textContent = shindo;
+          document.getElementById("intensity").style.background = colorByShindo(shindo);
+          if (shindo >= 3) document.getElementById("alert").play();
         }
-
-        if (shakeCounter >= shakeDurationThreshold) {
-          updateIntensity(intensity); // 震度の更新
-        } else {
-          document.getElementById('intensity').textContent = "震度 0";
-        }
-
-        lastShakeValue = gal;
       });
     }
 
-    // 震度を計算
-    function toIntensity(gal) {
-      if (gal < 2.5) return 0;
-      if (gal < 8) return 1;
-      if (gal < 25) return 2;
-      if (gal < 80) return 3;
-      if (gal < 250) return 4;
-      if (gal < 400) return "5-";
-      if (gal < 550) return "5+";
-      if (gal < 700) return "6-";
-      if (gal < 850) return "6+";
-      return 7;
+    function requestSensorPermission() {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission();
+      }
     }
 
-    // 震度の更新
-    function updateIntensity(intensity) {
-      document.getElementById('intensity').textContent = `震度 ${intensity}`;
+    function startTest() {
+      document.getElementById("shindo").textContent = "5-";
+      document.getElementById("intensity").style.background = colorByShindo(5);
+      document.getElementById("area").textContent = "沖縄県那覇市";
+      document.getElementById("magnitude").textContent = "M6.8";
+      document.getElementById("tsunami").textContent = "津波の心配なし";
+      let countdown = 10;
+      const interval = setInterval(() => {
+        document.getElementById("countdown").textContent = `到達まで ${countdown} 秒`;
+        countdown--;
+        if (countdown < 0) clearInterval(interval);
+      }, 1000);
+
+      // 地震→震源→現在地へのズーム演出（疑似）
+      let testLat = 25.5, testLng = 127.2;
+      L.circle([testLat, testLng], { radius: 30000, color: 'blue' }).addTo(map);
+      map.setView([testLat, testLng], 7);
+      setTimeout(() => map.setView(marker.getLatLng(), 9), 3000);
     }
-
-    // テスト用の地震情報
-    document.getElementById('test-button').addEventListener('click', function() {
-      earthquakeLocationLat = 24.0;  // 沖縄
-      earthquakeLocationLon = 124.0; // 琉球トラフ
-
-      // テスト用のデータ
-      document.getElementById('earthquake-info').innerHTML = `
-        震源地: 沖縄・琉球トラフ付近 <br>
-        発生時刻: ${new Date().toLocaleString()}
-      `;
-
-      // 地図に地震地点を表示
-      updateMap(earthquakeLocationLat, earthquakeLocationLon);
-
-      // 予測震度、津波予測表示
-      document.getElementById('tsunami-info').textContent = "津波予測: なし";
-      document.getElementById('time-info').innerHTML = `P波到達まで: 5秒<br>S波到達まで: 10秒`;
-      document.getElementById('seconds').textContent = "残り時間: 10秒";
-    });
-
-    // ページ読み込み時に位置情報を取得
-    getUserLocation();
-    fetchEarthquakeInfo();
   </script>
 </body>
 </html>
