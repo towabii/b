@@ -33,15 +33,14 @@ window.addEventListener("devicemotion", e => {
 function updateShindo(level) {
   const panel = document.getElementById("panel-shindo");
   let shindoText = `気象庁震度：${level}`;
-  let mobileShindo = convertToShindo(level);
-  shindoText += ` / 実際の震度：${mobileShindo}`;
-  if (mobileShindo === 6) {
+  if (level === 6) {
     shindoText += "強";
-  } else if (mobileShindo === 5) {
+  } else if (level === 5) {
     shindoText += "+";
-  } else if (mobileShindo > 5) {
+  } else if (level > 5) {
     shindoText += "強";
   }
+
   panel.textContent = shindoText;
   panel.style.backgroundColor = getColor(level);
 }
@@ -104,8 +103,8 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 7);  // P波の速度7km/s
-  const sTime = Math.floor(dist / 4);  // S波の速度3~4km/s
+  const pTime = Math.floor(dist / 7);  // P波: 約7km/s
+  const sTime = Math.floor(dist / 3.5);  // S波: 約3.5km/s
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
@@ -139,47 +138,20 @@ function showEpicenterAndWaves(epiLat, epiLon) {
     if (pWaveCircle) map.removeLayer(pWaveCircle);
     if (sWaveCircle) map.removeLayer(sWaveCircle);
 
-    pWaveCircle = L.circle([epiLat, epiLon], { radius: rP, color: 'blue' }).addTo(map);
-    sWaveCircle = L.circle([epiLat, epiLon], { radius: rS, color: 'orange' }).addTo(map);
-  }, 2000);
-}
+    pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "blue", fillOpacity: 0.3 }).addTo(map);
+    sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
 
-// 琉球トラフの震源地（仮） - 北緯24度、東経125度
-const epiLat = 24.0; // 震源地の緯度
-const epiLon = 125.0; // 震源地の経度
+    let expand = 0;
+    const expandInterval = setInterval(() => {
+      rP = pWaveCircle.getRadius();
+      rS = sWaveCircle.getRadius();
+      pWaveCircle.setRadius(rP + 5);
+      sWaveCircle.setRadius(rS + 5);
+      if (rP > 200000) clearInterval(expandInterval);  // P波が十分広がったら止める
+    }, 10);
+  }, 1000);
+}
 
 document.getElementById("testButton").addEventListener("click", () => {
-  console.log("テスト地震発生！");
-  showEpicenterAndWaves(epiLat, epiLon); // 琉球トラフを震源地として表示
+  showEpicenterAndWaves(25.28, 127.6);  // 琉球トラフのテスト震源地
 });
-
-function showEpicenterAndWaves(epiLat, epiLon) {
-  if (!map || userLat === null) return;
-
-  map.setView([epiLat, epiLon], 10);
-
-  setTimeout(() => {
-    const bounds = L.latLngBounds([[epiLat, epiLon], [userLat, userLon]]);
-    map.fitBounds(bounds, { padding: [50, 50] });
-
-    // 震源地をX印で表示
-    const xIcon = L.divIcon({
-      className: 'x-icon',
-      html: `<div style="color: red; font-size: 32px;">✖</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
-    });
-    L.marker([epiLat, epiLon], { icon: xIcon }).addTo(map).bindPopup("震源地");
-
-    startWaveCountdown(epiLat, epiLon);
-
-    let rP = 0, rS = 0;
-    if (pWaveCircle) map.removeLayer(pWaveCircle);
-    if (sWaveCircle) map.removeLayer(sWaveCircle);
-
-    // P波とS波の円を表示
-    pWaveCircle = L.circle([epiLat, epiLon], { radius: rP, color: 'blue' }).addTo(map);
-    sWaveCircle = L.circle([epiLat, epiLon], { radius: rS, color: 'orange' }).addTo(map);
-  }, 2000);
-}
-
