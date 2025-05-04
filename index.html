@@ -87,6 +87,16 @@
       cursor: pointer;
       margin-top: 30px;
     }
+    #test-button {
+      padding: 12px 24px;
+      font-size: 18px;
+      background-color: #ff9900;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
 
     /* 横向きレイアウト */
     @media (orientation: landscape) {
@@ -117,6 +127,7 @@
       <div id="seconds">残り時間: 0秒</div>
       <div id="tsunami-info">津波予測情報: なし</div>
       <button id="permission-button">センサーを許可</button>
+      <button id="test-button">テスト</button>
     </div>
   </div>
 
@@ -127,7 +138,8 @@
     let shakeHistory = [];
     let earthquakeLocationLat, earthquakeLocationLon;
     const shakeThreshold = 1.5; // 揺れのしきい値（gal）
-    const shakeDurationThreshold = 10; // 揺れが続く時間（秒）
+    const shakeDurationThreshold = 3; // 揺れが続く時間（秒）
+    const shakeColorThreshold = 5; // 揺れの色のタイミング（秒）
     const colors = {
       0: "green",  // 震度0
       1: "green",  // 震度1
@@ -222,7 +234,7 @@
         // 震度の色変更
         document.getElementById('intensity').style.color = colors[intensity];
 
-        // 10秒間同じ揺れを続けた場合に震度表示
+        // 3秒間同じ揺れを続けた場合に震度表示
         if (Math.abs(gal - lastShakeValue) < shakeThreshold) {
           shakeCounter++;
         } else {
@@ -257,6 +269,26 @@
     function updateIntensity(intensity) {
       document.getElementById('intensity').textContent = `震度 ${intensity}`;
     }
+
+    // テスト用の地震情報
+    document.getElementById('test-button').addEventListener('click', function() {
+      earthquakeLocationLat = 24.0;  // 沖縄
+      earthquakeLocationLon = 124.0; // 琉球トラフ
+
+      // テスト用のデータ
+      document.getElementById('earthquake-info').innerHTML = `
+        震源地: 沖縄・琉球トラフ付近 <br>
+        発生時刻: ${new Date().toLocaleString()}
+      `;
+
+      // 地図に地震地点を表示
+      updateMap(earthquakeLocationLat, earthquakeLocationLon);
+
+      // 予測震度、津波予測表示
+      document.getElementById('tsunami-info').textContent = "津波予測: なし";
+      document.getElementById('time-info').innerHTML = `P波到達まで: 5秒<br>S波到達まで: 10秒`;
+      document.getElementById('seconds').textContent = "残り時間: 10秒";
+    });
 
     // ページ読み込み時に位置情報を取得
     getUserLocation();
