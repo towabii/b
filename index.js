@@ -3,6 +3,8 @@ let userLon = null;
 let map = null;
 let pWaveCircle = null;
 let sWaveCircle = null;
+let tsunamiCircle = null; // 津波表示用
+let tsunamiEffect = false; // 津波が来るかどうか
 
 navigator.geolocation.getCurrentPosition(pos => {
   userLat = pos.coords.latitude;
@@ -33,6 +35,7 @@ function updateShindo(level) {
   const panel = document.getElementById("panel-shindo");
   panel.textContent = `震度：${level}`;
   panel.style.backgroundColor = getColor(level);
+  updateTsunamiWarning(level); // 津波警報の更新
 }
 
 function getColor(level) {
@@ -42,9 +45,21 @@ function getColor(level) {
   return "lightgreen";
 }
 
-function detectQuake(level) {
-  console.log("地震検出:", level);
-  // 必要であれば追加処理
+function updateTsunamiWarning(level) {
+  // 津波警報エリアの色付け
+  if (level >= 4) {
+    tsunamiEffect = true;
+    let color = level >= 7 ? 'purple' : level >= 5 ? 'red' : 'yellow';
+    if (tsunamiCircle) map.removeLayer(tsunamiCircle);
+    tsunamiCircle = L.circle([userLat, userLon], {
+      radius: 30000, // 半径30km（テスト用）
+      color: color,
+      fillOpacity: 0.3
+    }).addTo(map);
+  } else {
+    if (tsunamiCircle) map.removeLayer(tsunamiCircle);
+    tsunamiEffect = false;
+  }
 }
 
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -59,8 +74,8 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 6);
-  const sTime = Math.floor(dist / 3.5);
+  const pTime = Math.floor(dist / 7);  // P波の速度は約7km/s
+  const sTime = Math.floor(dist / 3.5); // S波の速度は約3.5km/s
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
@@ -98,7 +113,8 @@ function showEpicenterAndWaves(epiLat, epiLon) {
     sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: "orange", fillOpacity: 0.2 }).addTo(map);
 
     let interval = setInterval(() => {
-      rP += 600; rS += 350;
+      rP += 700;  // P波の速度
+      rS += 350;  // S波の速度
       pWaveCircle.setRadius(rP);
       sWaveCircle.setRadius(rS);
       if (rS > 300000) clearInterval(interval);
@@ -109,6 +125,6 @@ function showEpicenterAndWaves(epiLat, epiLon) {
 document.getElementById("testButton").addEventListener("click", () => {
   const ryukyuLat = 26.3;
   const ryukyuLon = 127.5;
-  updateShindo(7);
+  updateShindo(7); // テストで震度7を表示
   showEpicenterAndWaves(ryukyuLat, ryukyuLon);
 });
