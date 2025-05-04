@@ -24,34 +24,22 @@ window.addEventListener("devicemotion", e => {
   shakeHistory = shakeHistory.filter(d => Date.now() - d.time < 3000);
 
   const avg = shakeHistory.reduce((a, b) => a + b.magnitude, 0) / shakeHistory.length;
-  let shindoAcc = convertToShindo(avg);
+  let shindo = convertToShindo(avg);
 
-  if (avg > 12) detectQuake(shindoAcc);
-  updateShindoAcc(shindoAcc);
+  if (avg > 12) detectQuake(shindo);
+  updateShindo(shindo);
 });
-
-function updateShindoAcc(level) {
-  const panel = document.getElementById("panel-shindo-acc");
-  let shindoAccText = `震度（加速度）：${level}`;
-  if (level === 6) {
-    shindoAccText += "強";
-  } else if (level === 5) {
-    shindoAccText += "+";
-  } else if (level > 5) {
-    shindoAccText += "強";
-  }
-  panel.textContent = shindoAccText;
-  panel.style.backgroundColor = getColor(level);
-}
 
 function updateShindo(level) {
   const panel = document.getElementById("panel-shindo");
-  let shindoText = `震度（気象庁）：${level}`;
-  if (level === 6) {
+  let shindoText = `気象庁震度：${level}`;
+  let mobileShindo = convertToShindo(level);
+  shindoText += ` / 実際の震度：${mobileShindo}`;
+  if (mobileShindo === 6) {
     shindoText += "強";
-  } else if (level === 5) {
+  } else if (mobileShindo === 5) {
     shindoText += "+";
-  } else if (level > 5) {
+  } else if (mobileShindo > 5) {
     shindoText += "強";
   }
   panel.textContent = shindoText;
@@ -116,8 +104,8 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 7); // P波速度7km/s
-  const sTime = Math.floor(dist / 3.5); // S波速度3-4km/s
+  const pTime = Math.floor(dist / 7);  // P波の速度7km/s
+  const sTime = Math.floor(dist / 4);  // S波の速度3~4km/s
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
@@ -151,17 +139,7 @@ function showEpicenterAndWaves(epiLat, epiLon) {
     if (pWaveCircle) map.removeLayer(pWaveCircle);
     if (sWaveCircle) map.removeLayer(sWaveCircle);
 
-    pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: 'blue' }).addTo(map);
-    sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: 'green' }).addTo(map);
-    setInterval(() => {
-      rP += 5;
-      rS += 10;
-      pWaveCircle.setRadius(rP);
-      sWaveCircle.setRadius(rS);
-    }, 1000);
-  }, 1000);
+    pWaveCircle = L.circle([epiLat, epiLon], { radius: rP, color: 'blue' }).addTo(map);
+    sWaveCircle = L.circle([epiLat, epiLon], { radius: rS, color: 'orange' }).addTo(map);
+  }, 2000);
 }
-
-document.getElementById("testButton").addEventListener("click", () => {
-  showEpicenterAndWaves(userLat + 0.1, userLon + 0.1);
-});
