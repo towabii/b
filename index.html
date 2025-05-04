@@ -3,92 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>震度表示サイト</title>
+  <title>震度チェッカー（地面置き対応）</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       text-align: center;
-      padding: 50px;
+      padding: 40px;
     }
     #intensity {
-      font-size: 32px;
+      font-size: 48px;
       font-weight: bold;
-      margin-top: 20px;
-    }
-    #galue {
-      font-size: 18px;
-      margin-top: 10px;
+      color: #e63946;
+      margin-top: 30px;
     }
     #permission-button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 20px;
-      background-color: #28a745;
+      margin-top: 30px;
+      padding: 12px 24px;
+      font-size: 18px;
+      background-color: #1d3557;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>スマホで震度を測ろう</h1>
-  <p>スマートフォンを振って震度を確認してみよう。</p>
-
-  <div id="intensity">震度：-</div>
-  <div id="galue">加速度（gal）: 0</div>
-  <button id="permission-button">震度計測を許可</button>
+  <h1>スマホで震度チェック</h1>
+  <p>スマホを平らな場所に置いて揺れを検知します。</p>
+  <div id="intensity">震度：0</div>
+  <button id="permission-button">センサーを許可</button>
 
   <script>
     document.getElementById('permission-button').addEventListener('click', function () {
       if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        // iOS用
         DeviceMotionEvent.requestPermission().then(response => {
           if (response === 'granted') {
-            startMotionDetection();
+            startDetecting();
             this.style.display = 'none';
           } else {
-            alert('センサー使用が許可されませんでした。');
+            alert("センサー使用が許可されませんでした。");
           }
         }).catch(console.error);
       } else {
-        // Androidなど
-        startMotionDetection();
+        startDetecting();
         this.style.display = 'none';
       }
     });
 
     function toIntensity(gal) {
-      if (gal < 2) return "震度0";
-      if (gal < 10) return "震度1";
-      if (gal < 50) return "震度2";
-      if (gal < 100) return "震度3";
-      if (gal < 250) return "震度4";
-      if (gal < 400) return "震度5弱";
-      if (gal < 600) return "震度5強";
-      if (gal < 800) return "震度6弱";
-      if (gal < 1000) return "震度6強";
-      return "震度7";
+      if (gal < 2) return 0;
+      if (gal < 10) return 1;
+      if (gal < 50) return 2;
+      if (gal < 100) return 3;
+      if (gal < 250) return 4;
+      if (gal < 400) return "5弱";
+      if (gal < 600) return "5強";
+      if (gal < 800) return "6弱";
+      if (gal < 1000) return "6強";
+      return 7;
     }
 
-    function startMotionDetection() {
+    let lastTime = 0;
+    function startDetecting() {
       window.addEventListener('devicemotion', function (event) {
-        const acc = event.accelerationIncludingGravity;
+        const acc = event.acceleration;
         if (!acc) return;
+
+        const now = Date.now();
+        if (now - lastTime < 100) return; // 0.1秒ごとの更新（ノイズ防止）
+        lastTime = now;
 
         const x = acc.x || 0;
         const y = acc.y || 0;
         const z = acc.z || 0;
 
-        // 合成加速度（m/s²）→ gal に変換（1m/s² = 100 gal）
-        const accValue = Math.sqrt(x * x + y * y + z * z);
-        const gal = (accValue * 100).toFixed(1); // galに変換
+        const total = Math.sqrt(x * x + y * y + z * z);
 
-        // 震度変換
+        // 小さい揺れ（0.2m/s²以下）は無視して震度0扱い
+        const gal = total < 0.2 ? 0 : total * 100;
         const intensity = toIntensity(gal);
 
-        // 表示
-        document.getElementById('galue').textContent = `加速度（gal）: ${gal}`;
         document.getElementById('intensity').textContent = `震度：${intensity}`;
       });
     }
