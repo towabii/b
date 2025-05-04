@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>地震チェッカー</title>
-  <link rel="stylesheet" href="index.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地震チェッカー</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="container">
-    <div id="panel-shindo" class="panel">震度：---</div>
-    <div id="panel-map" class="panel"><div id="map"></div></div>
-    <div id="panel-timer" class="panel">P波: --s / S波: --s</div>
-    <div id="panel-tsunami" class="panel">津波情報：なし</div>
-  </div>
-  <button id="testButton">テスト地震発生</button>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="index.js"></script>
+    <div class="panel" id="panel-shindo-left"></div>
+    <div class="panel" id="panel-shindo-right"></div>
+    
+    <div class="panel" id="panel-timer"></div>
+    
+    <div class="panel" id="panel-magnitude-depth"></div>
+    
+    <div id="map" style="height: 500px;"></div>
+    
+    <button id="testButton">テスト</button>
+    
+    <script src="https://unpkg.com/leaflet"></script>
+    <script src="index.js"></script>
 </body>
 </html>
