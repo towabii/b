@@ -7,7 +7,7 @@
 body {
     font-family: Arial, sans-serif;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-between;
     height: 100vh;
     overflow: hidden;
@@ -21,24 +21,33 @@ body {
     height: 100%;
 }
 
-#left-top, #left-bottom, #right-top, #right-bottom {
+#earthquake-info {
     padding: 10px;
-    margin: 5px;
     background-color: rgba(0, 0, 0, 0.7);
     color: white;
-    border-radius: 5px;
+    margin-bottom: 10px;
 }
 
 #map {
-    height: 300px;
+    height: 400px;
     width: 100%;
 }
 
-#actual-shindo, #wave-prediction, #tsunami-info {
-    font-size: 24px;
-    font-weight: bold;
+#shindo, #wave-time, #tsunami-info {
+    font-size: 18px;
+    margin: 5px 0;
 }
 
-#right-bottom {
-    background-color: rgba(255, 0, 0, 0.7);
+#test-button {
+    padding: 10px;
+    background-color: #ff6347;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#test-button:hover {
+    background-color: #ff4500;
 }
