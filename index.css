@@ -1,4 +1,34 @@
 body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #f0f0f0;
+}
+#container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 50vh 50vh;
+  height: 100vh;
+}
+.panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5em;
+  border: 1px solid #ccc;
+}
+#map {
+  width: 100%;
+  height: 100%;
+}
+#testButton {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 10px;
+  font-size: 1em;
+}
+
+body {
   font-family: Arial, sans-serif;
 }
 
