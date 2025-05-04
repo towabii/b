@@ -15,6 +15,7 @@ body {
   align-items: center;
   font-size: 1.5em;
   border: 1px solid #ccc;
+  background: #fff;
 }
 #map {
   width: 100%;
@@ -28,5 +29,13 @@ body {
   font-size: 1em;
 }
 #panel-shindo {
-  font-size: 2em; /* 震度部分を大きく */
+  font-size: 1.5em;
+}
+#panel-shindo-official {
+  font-size: 2.5em;
+  font-weight: bold;
+}
+#panel-shindo-acceleration {
+  font-size: 2.5em;
+  font-weight: bold;
 }
