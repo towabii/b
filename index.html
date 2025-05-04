@@ -3,24 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>プログラミング体験</title>
-    <link rel="stylesheet" href="style.css">
+    <title>カーナビ風サイト</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #map { height: 100vh; }
+        .nav-button { position: absolute; top: 20px; left: 20px; background: #fff; padding: 10px; border-radius: 5px; }
+        /* ナイトモードのスタイル */
+        .night-mode { background-color: #333; color: white; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="blocks">
-            <div class="block" id="block1" draggable="true">→ (移動)</div>
-            <div class="block" id="block2" draggable="true">← (移動)</div>
-            <div class="block" id="block3" draggable="true">ジャンプ</div>
-        </div>
 
-        <div class="program-area" id="program-area">
-            <h2>ここにブロックをドラッグして、プログラムを作成しよう！</h2>
-        </div>
+<button class="nav-button" onclick="toggleNightMode()">ナイトモード</button>
+<div id="map"></div>
 
-        <button id="run-btn">実行</button>
-    </div>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+<script>
+    let map;
+    let directionsService;
+    let directionsRenderer;
+    let nightMode = false;
 
-    <script src="script.js"></script>
+    function initMap() {
+        // 地図を初期化
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: 35.6895, lng: 139.6917 }, // 東京を中心に
+            zoom: 14,
+        });
+
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer();
+        directionsRenderer.setMap(map);
+        
+        // 現在地を取得して表示
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+                map.setCenter(pos);
+            });
+        }
+
+        // 例: 経路案内を表示
+        calculateRoute();
+    }
+
+    function calculateRoute() {
+        const start = "東京駅"; // 出発地
+        const end = "渋谷駅";   // 目的地
+
+        const request = {
+            origin: start,
+            destination: end,
+            travelMode: 'DRIVING',
+        };
+
+        directionsService.route(request, function(result, status) {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(result);
+            }
+        });
+    }
+
+    // ナイトモードの切替
+    function toggleNightMode() {
+        nightMode = !nightMode;
+        document.body.classList.toggle('night-mode', nightMode);
+    }
+</script>
+
 </body>
 </html>
