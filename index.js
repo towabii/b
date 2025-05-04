@@ -32,11 +32,7 @@ window.addEventListener("devicemotion", e => {
 
 function updateShindo(level) {
   const panel = document.getElementById("panel-shindo");
-  const panelMeteorological = document.getElementById("panel-shindo-meteorological");
-  
   let shindoText = `震度（加速度）：${level}`;
-  let meteorologicalShindoText = `震度（気象庁）：${convertToMeteorologicalShindo(level)}`;
-
   if (level === 6) {
     shindoText += "強";
   } else if (level === 5) {
@@ -44,10 +40,12 @@ function updateShindo(level) {
   } else if (level > 5) {
     shindoText += "強";
   }
-  
-  panel.textContent = shindoText;
+  document.getElementById("shindo-accel").textContent = shindoText;
+
+  // 気象庁発表の震度（仮のデータ）
+  const meteorologicalShindo = Math.min(level, 7); // 最大震度7
+  document.getElementById("shindo-meteorological").textContent = `震度（気象庁発表）：${meteorologicalShindo}`;
   panel.style.backgroundColor = getColor(level);
-  panelMeteorological.textContent = meteorologicalShindoText;
 }
 
 function convertToShindo(gal) {
@@ -59,18 +57,6 @@ function convertToShindo(gal) {
   if (gal < 12) return 4;
   if (gal < 18) return 5;
   if (gal < 30) return 6;
-  return 7;
-}
-
-function convertToMeteorologicalShindo(gal) {
-  // 気象庁の震度に変換
-  if (gal < 1) return 0;
-  if (gal < 4) return 1;
-  if (gal < 6) return 2;
-  if (gal < 8) return 3;
-  if (gal < 10) return 4;
-  if (gal < 12) return 5;
-  if (gal < 15) return 6;
   return 7;
 }
 
@@ -120,19 +106,35 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 
 function startWaveCountdown(epiLat, epiLon) {
   const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
-  const pTime = Math.floor(dist / 7); // P波の速度は7km/s
-  const sTime = Math.floor(dist / 3.5); // S波の速度は3.5km/s
+  const pTime = Math.floor(dist / 7); // P波の速度7km/s
+  const sTime = Math.floor(dist / 3.5); // S波の速度3.5km/s
   let t = 0;
   const interval = setInterval(() => {
     const pRemain = Math.max(pTime - t, 0);
     const sRemain = Math.max(sTime - t, 0);
     document.getElementById("panel-timer").textContent = `P波: ${pRemain}s / S波: ${sRemain}s`;
-    t++;
     if (pRemain === 0 && sRemain === 0) clearInterval(interval);
+    t++;
+  }, 1000);
+}
+
+function showEpicenterAndWaves(epiLat, epiLon) {
+  if (!map || userLat === null) return;
+
+  map.setView([epiLat, epiLon], 10);
+
+  setTimeout(() => {
+    const bounds = L.latLngBounds([[epiLat, epiLon], [userLat, userLon]]);
+    const epicenterMarker = L.marker([epiLat, epiLon]).addTo(map);
+    epicenterMarker.bindPopup("震源地");
+
+    startWaveCountdown(epiLat, epiLon);
   }, 1000);
 }
 
 document.getElementById("testButton").addEventListener("click", () => {
-  console.log("テスト地震発生！");
-  startWaveCountdown(24.4433, 123.6989); // 琉球トラフの位置に設定
+  const epiLat = 24.3333;
+  const epiLon = 123.0000;
+  showEpicenterAndWaves(epiLat, epiLon);
+  document.getElementById("panel-shindo").textContent = "テスト地震発生";
 });
