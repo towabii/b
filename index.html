@@ -4,24 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>地震チェッカー</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-  <div id="panel">
-    <div id="panel-left-top">
-      <div id="left-shindo"></div>
-      <div id="right-shindo"></div>
+  <div id="main-container">
+    <div id="top-left">
+      <div id="panel-shindo">震度：0</div>
+      <div id="panel-shindo-gov">気象庁の震度：0</div>
     </div>
-    <div id="panel-left-bottom">
-      <div id="left-magnitude-depth"></div>
-      <div id="right-shake-time"></div>
+    <div id="top-right">
+      <div id="panel-timer">P波: 0s / S波: 0s</div>
     </div>
-    <div id="map" style="width: 100%; height: 400px;"></div>
-    <div id="panel-timer"></div>
+    <div id="bottom-left">
+      <div id="panel-magnitude">マグニチュード: 0</div>
+      <div id="panel-depth">深さ: 0km</div>
+    </div>
+    <div id="bottom-right">
+      <div id="panel-duration">揺れの時間: 0秒</div>
+    </div>
+    <div id="map" style="height: 100vh;"></div>
     <button id="testButton">テスト</button>
   </div>
-
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-  <script src="script.js"></script>
+  <script src="index.js"></script>
 </body>
 </html>
