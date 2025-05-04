@@ -1,102 +1,167 @@
-let map;
-let currentLatitude = 26.2124;  // 沖縄の緯度
-let currentLongitude = 127.6809;  // 沖縄の経度
-let isTestMode = false;
+let userLat = null;
+let userLon = null;
+let map = null;
+let pWaveCircle = null;
+let sWaveCircle = null;
+let tsunamiAlert = false;
 
-document.getElementById('test-mode').addEventListener('click', toggleTestMode);
+navigator.geolocation.getCurrentPosition(pos => {
+  userLat = pos.coords.latitude;
+  userLon = pos.coords.longitude;
+  map = L.map("map").setView([userLat, userLon], 8);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+  }).addTo(map);
+  L.marker([userLat, userLon]).addTo(map).bindPopup("現在地");
+});
 
-function toggleTestMode() {
-    isTestMode = !isTestMode;
-    if (isTestMode) {
-        startTest();
-    } else {
-        stopTest();
-    }
+let shakeHistory = [];
+window.addEventListener("devicemotion", e => {
+  const acc = e.accelerationIncludingGravity;
+  if (!acc) return;
+  const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2);
+  shakeHistory.push({ time: Date.now(), magnitude });
+  shakeHistory = shakeHistory.filter(d => Date.now() - d.time < 3000);
+
+  const avg = shakeHistory.reduce((a, b) => a + b.magnitude, 0) / shakeHistory.length;
+  let shindoAcc = convertToShindo(avg);
+
+  if (avg > 12) detectQuake(shindoAcc);
+  updateShindoAcc(shindoAcc);
+});
+
+function updateShindoAcc(level) {
+  const panel = document.getElementById("panel-shindo-acc");
+  let shindoAccText = `震度（加速度）：${level}`;
+  if (level === 6) {
+    shindoAccText += "強";
+  } else if (level === 5) {
+    shindoAccText += "+";
+  } else if (level > 5) {
+    shindoAccText += "強";
+  }
+  panel.textContent = shindoAccText;
+  panel.style.backgroundColor = getColor(level);
 }
 
-function startTest() {
-    console.log("テストモード開始");
-
-    // テスト用の震源地
-    let epicenter = { lat: 26.222, lng: 127.687 };
-    let tsunamiWarning = true;
-
-    // 地図設定
-    createMap(epicenter);
-
-    // 揺れの予測時間
-    document.getElementById('time-to-shake').textContent = '10秒後';
-
-    // 津波警報
-    if (tsunamiWarning) {
-        document.getElementById('tsunami-info').textContent = '津波警報あり';
-        document.getElementById('tsunami-info').style.color = 'red';
-    } else {
-        document.getElementById('tsunami-info').textContent = '津波警報なし';
-        document.getElementById('tsunami-info').style.color = 'green';
-    }
-
-    // 気象庁の震度 (テストデータ)
-    let meteorologicalShindo = 6;
-    document.getElementById('meteo-shindo').textContent = meteorologicalShindo;
-
-    // 加速度震度 (テストデータ)
-    let accelerationShindo = 5;
-    document.getElementById('accel-shindo').textContent = accelerationShindo;
+function updateShindo(level) {
+  const panel = document.getElementById("panel-shindo");
+  let shindoText = `震度（気象庁）：${level}`;
+  if (level === 6) {
+    shindoText += "強";
+  } else if (level === 5) {
+    shindoText += "+";
+  } else if (level > 5) {
+    shindoText += "強";
+  }
+  panel.textContent = shindoText;
+  panel.style.backgroundColor = getColor(level);
 }
 
-function stopTest() {
-    console.log("テストモード終了");
-    resetMap();
-    document.getElementById('time-to-shake').textContent = '-';
-    document.getElementById('tsunami-info').textContent = '-';
-    document.getElementById('meteo-shindo').textContent = '-';
-    document.getElementById('accel-shindo').textContent = '-';
+function convertToShindo(gal) {
+  // gal -> 震度変換
+  if (gal < 1) return 0;
+  if (gal < 3) return 1;
+  if (gal < 5) return 2;
+  if (gal < 8) return 3;
+  if (gal < 12) return 4;
+  if (gal < 18) return 5;
+  if (gal < 30) return 6;
+  return 7;
 }
 
-function createMap(epicenter) {
-    if (map) {
-        map.remove();
-    }
-
-    map = L.map('map').setView([epicenter.lat, epicenter.lng], 13);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    L.marker([epicenter.lat, epicenter.lng]).addTo(map)
-        .bindPopup('震源地')
-        .openPopup();
-
-    setTimeout(() => {
-        // 震源地をバツ印に変更
-        L.marker([epicenter.lat, epicenter.lng], { icon: L.divIcon({ className: 'cross-icon', html: 'X' }) }).addTo(map);
-    }, 3000);
-
-    // P波、S波のアニメーションを表示
-    displayWaves(epicenter);
+function getColor(level) {
+  if (level >= 7) return "purple";
+  if (level >= 6) return "red";
+  if (level >= 4) return "yellow";
+  return "lightgreen";
 }
 
-function displayWaves(epicenter) {
-    // P波、S波のアニメーション (円の拡大)
-    let pWaveCircle = L.circle([epicenter.lat, epicenter.lng], { color: 'red', radius: 100 }).addTo(map);
-    let sWaveCircle = L.circle([epicenter.lat, epicenter.lng], { color: 'blue', radius: 200 }).addTo(map);
+function detectQuake(level) {
+  console.log("地震検出:", level);
+  if (level >= 4) {
+    tsunamiAlert = true;
+    document.getElementById("panel-tsunami").textContent = "津波警報: 発生";
+    // 津波エリアを色塗り
+    drawTsunamiArea(level);
+  }
+}
 
-    setTimeout(() => {
-        pWaveCircle.setRadius(500);
-        sWaveCircle.setRadius(800);
+function drawTsunamiArea(shindo) {
+  // 津波エリアを色塗り
+  const tsunamiArea = L.polygon([
+    [userLat - 0.5, userLon - 0.5], // 仮の範囲
+    [userLat - 0.5, userLon + 0.5],
+    [userLat + 0.5, userLon + 0.5],
+    [userLat + 0.5, userLon - 0.5]
+  ], { color: getTsunamiColor(shindo) }).addTo(map);
+}
+
+function getTsunamiColor(shindo) {
+  if (shindo >= 6) return "purple";
+  if (shindo >= 5) return "red";
+  if (shindo >= 4) return "yellow";
+  return "green";
+}
+
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function startWaveCountdown(epiLat, epiLon) {
+  const dist = calculateDistanceKm(userLat, userLon, epiLat, epiLon);
+  const pTime = Math.floor(dist / 7); // P波速度7km/s
+  const sTime = Math.floor(dist / 3.5); // S波速度3-4km/s
+  let t = 0;
+  const interval = setInterval(() => {
+    const pRemain = Math.max(pTime - t, 0);
+    const sRemain = Math.max(sTime - t, 0);
+    document.getElementById("panel-timer").textContent = `P波: ${pRemain}s / S波: ${sRemain}s`;
+    if (pRemain === 0 && sRemain === 0) clearInterval(interval);
+    t++;
+  }, 1000);
+}
+
+function showEpicenterAndWaves(epiLat, epiLon) {
+  if (!map || userLat === null) return;
+
+  map.setView([epiLat, epiLon], 10);
+
+  setTimeout(() => {
+    const bounds = L.latLngBounds([[epiLat, epiLon], [userLat, userLon]]);
+    map.fitBounds(bounds, { padding: [50, 50] });
+
+    const xIcon = L.divIcon({
+      className: 'x-icon',
+      html: `<div style="color: red; font-size: 32px;">✖</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    L.marker([epiLat, epiLon], { icon: xIcon }).addTo(map).bindPopup("震源地");
+
+    startWaveCountdown(epiLat, epiLon);
+
+    let rP = 0, rS = 0;
+    if (pWaveCircle) map.removeLayer(pWaveCircle);
+    if (sWaveCircle) map.removeLayer(sWaveCircle);
+
+    pWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: 'blue' }).addTo(map);
+    sWaveCircle = L.circle([epiLat, epiLon], { radius: 0, color: 'green' }).addTo(map);
+    setInterval(() => {
+      rP += 5;
+      rS += 10;
+      pWaveCircle.setRadius(rP);
+      sWaveCircle.setRadius(rS);
     }, 1000);
-
-    // 3秒後に円を消去
-    setTimeout(() => {
-        map.removeLayer(pWaveCircle);
-        map.removeLayer(sWaveCircle);
-    }, 5000);
+  }, 1000);
 }
 
-function resetMap() {
-    if (map) {
-        map.remove();
-    }
-}
+document.getElementById("testButton").addEventListener("click", () => {
+  showEpicenterAndWaves(userLat + 0.1, userLon + 0.1);
+});
