@@ -9,31 +9,11 @@
 </head>
 <body>
   <div id="container">
-    <!-- 左上：スマホ震度 / 気象庁震度 -->
-    <div id="panel-shindo" class="panel">
-      <div id="real-shindo">実際の震度：---</div>
-      <div id="official-shindo">気象庁震度：---</div>
-    </div>
-    
-    <!-- 右上：P/S波の到達予測秒数 -->
-    <div id="panel-timer" class="panel">P波: --s / S波: --s</div>
-
-    <!-- 左下：マグニチュードと深さ -->
-    <div id="panel-magnitude" class="panel">
-      <div id="magnitude">マグニチュード: ---</div>
-      <div id="depth">深さ: ---</div>
-    </div>
-
-    <!-- 右下：揺れの秒数 / 津波情報 -->
-    <div id="panel-tsunami" class="panel">
-      <div id="shake-duration">揺れの秒数: ---</div>
-      <div id="tsunami-info">津波情報：なし</div>
-    </div>
-
-    <!-- 地図表示 -->
+    <div id="panel-shindo" class="panel">震度：---</div>
     <div id="panel-map" class="panel"><div id="map"></div></div>
+    <div id="panel-timer" class="panel">P波: --s / S波: --s</div>
+    <div id="panel-tsunami" class="panel">津波情報：なし</div>
   </div>
-
   <button id="testButton">テスト地震発生</button>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="index.js"></script>
