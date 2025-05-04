@@ -1,16 +1,17 @@
-// 初期設定
-let map = L.map('map').setView([24.5, 123.0], 6); // 初期表示位置: 沖縄近辺
+// 地図設定
+let map = L.map('map').setView([24.5, 123.0], 6); // 初期位置を沖縄近辺に設定
 
 // OpenStreetMapのタイルレイヤーを追加
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// 加速度センサーを使った震度表示 (スマホの加速度)
-if (window.DeviceMotionEvent) {
-    let acceleration = { x: 0, y: 0, z: 0 };
-    let shakingThreshold = 10; // 加速度の閾値
+// 仮の加速度センサー (ここでは実際のデータを使う場合はAPIと連携します)
+let acceleration = { x: 0, y: 0, z: 0 };
+let shakingThreshold = 10; // 仮の加速度閾値
 
+// 加速度センサーのデータを受け取る
+if (window.DeviceMotionEvent) {
     window.addEventListener('devicemotion', (event) => {
         acceleration.x = event.acceleration.x;
         acceleration.y = event.acceleration.y;
@@ -23,39 +24,38 @@ if (window.DeviceMotionEvent) {
     });
 }
 
-// 震度の計算 (仮の処理)
+// 震度を更新する関数
 function updateShindo(accelerationMagnitude) {
     let shindo = Math.min(Math.floor(accelerationMagnitude / 10), 7); // 震度を最大7に制限
-    document.getElementById('actual-shindo').textContent = shindo;
+    document.getElementById('shindo').textContent = `震度: ${shindo}`;
 }
 
-// 地震情報の表示 (例: 地震発生時に震源地を表示)
+// 地震発生時に震源地を地図に表示する関数
 function displayEarthquakeInfo(lat, lng) {
     let marker = L.marker([lat, lng]).addTo(map);
     marker.bindPopup("震源地").openPopup();
 }
 
-// 予測秒数の表示 (仮の処理)
-function updatePredictionTime() {
-    let predictionTime = Math.floor(Math.random() * 10) + 1; // 仮の秒数
-    document.getElementById('wave-prediction').textContent = predictionTime;
+// 予測到達時間 (仮の計算)
+function updateWavePrediction() {
+    let predictionTime = Math.floor(Math.random() * 10) + 1; // 仮の予測秒数
+    document.getElementById('wave-time').textContent = `予測到達時間: ${predictionTime}秒`;
 }
 
-// 津波情報の表示 (仮の処理)
+// 津波警報 (仮)
 function updateTsunamiInfo() {
     let tsunamiWarning = "なし"; // 仮の情報
-    document.getElementById('tsunami-info').textContent = tsunamiWarning;
+    document.getElementById('tsunami-info').textContent = `津波警報: ${tsunamiWarning}`;
 }
 
-// テスト用地震情報を表示 (地震発生をシミュレート)
-function simulateEarthquake() {
-    displayEarthquakeInfo(25.0, 123.0); // 琉球トラフ付近の仮の震源地
-    updatePredictionTime();
+// テストボタンがクリックされたときに地震を発生させる
+document.getElementById('test-button').addEventListener('click', () => {
+    // 仮の震源地座標
+    let lat = 25.0;
+    let lng = 123.0;
+
+    // 地震情報を更新
+    displayEarthquakeInfo(lat, lng);
+    updateWavePrediction();
     updateTsunamiInfo();
-}
-
-// テストボタン
-let testButton = document.createElement("button");
-testButton.textContent = "テスト地震発生";
-testButton.onclick = simulateEarthquake;
-document.body.appendChild(testButton);
+});
