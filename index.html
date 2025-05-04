@@ -113,8 +113,9 @@
     let currentShindo = 0;
     let stableDuration = 0;
     let lastAccel = 0;
-    let timer;
     let testMode = false;
+    let shaking = false;
+    let shakingTimer;
 
     function updateShindo(gal) {
       const shindoScale = [0, 1, 2, 3, 4, 5, 5.5, 6, 6.5, 7];
@@ -145,19 +146,23 @@
       lastAccel = gal;
 
       if (delta > 10) {
-        stableDuration = 0;
-      } else {
+        if (!shaking) {
+          shaking = true;
+          stableDuration = 0;
+        }
+        clearTimeout(shakingTimer);
+        shakingTimer = setTimeout(() => {
+          shaking = false;
+          stableDuration = 0;
+        }, 3000);
         stableDuration += 0.1;
       }
 
-      if (stableDuration >= 3) {
+      if (shaking && stableDuration >= 3) {
         const shindo = updateShindo(gal);
         currentShindo = shindo;
         document.getElementById('shindoCurrent').textContent = `震度 ${shindo}`;
         updateColor(shindo);
-      } else {
-        document.getElementById('shindoCurrent').textContent = '震度 0';
-        updateColor(0);
       }
     }
 
