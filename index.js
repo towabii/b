@@ -3,8 +3,10 @@ let userLon = null;
 let map = null;
 let pWaveCircle = null;
 let sWaveCircle = null;
-let tsunamiCircle = null; // 津波表示用
+let tsunamiLine = null; // 津波表示用
 let tsunamiEffect = false; // 津波が来るかどうか
+let magnitude = null;
+let depth = null;
 
 navigator.geolocation.getCurrentPosition(pos => {
   userLat = pos.coords.latitude;
@@ -32,10 +34,15 @@ window.addEventListener("devicemotion", e => {
 });
 
 function updateShindo(level) {
-  const panel = document.getElementById("panel-shindo");
-  panel.textContent = `震度：${level}`;
+  const panel = document.getElementById("panel-shindo-left");
+  panel.textContent = `実際の震度：${level}`;
   panel.style.backgroundColor = getColor(level);
   updateTsunamiWarning(level); // 津波警報の更新
+}
+
+function updatePredictionShindo(level) {
+  const panel = document.getElementById("panel-shindo-right");
+  panel.textContent = `予測震度：${level}`;
 }
 
 function getColor(level) {
@@ -50,16 +57,22 @@ function updateTsunamiWarning(level) {
   if (level >= 4) {
     tsunamiEffect = true;
     let color = level >= 7 ? 'purple' : level >= 5 ? 'red' : 'yellow';
-    if (tsunamiCircle) map.removeLayer(tsunamiCircle);
-    tsunamiCircle = L.circle([userLat, userLon], {
-      radius: 30000, // 半径30km（テスト用）
-      color: color,
-      fillOpacity: 0.3
-    }).addTo(map);
+    drawTsunamiLine(color);
   } else {
-    if (tsunamiCircle) map.removeLayer(tsunamiCircle);
+    if (tsunamiLine) map.removeLayer(tsunamiLine);
     tsunamiEffect = false;
   }
+}
+
+function drawTsunamiLine(color) {
+  const tsunamiCoordinates = [
+    [26.3, 127.5], // 仮の沿岸部の座標（沖縄の例）
+    [27.3, 128.5]  // 震源地と沿岸部をつなぐライン
+  ];
+
+  if (tsunamiLine) map.removeLayer(tsunamiLine);
+
+  tsunamiLine = L.polyline(tsunamiCoordinates, { color: color, weight: 4 }).addTo(map);
 }
 
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -125,6 +138,15 @@ function showEpicenterAndWaves(epiLat, epiLon) {
 document.getElementById("testButton").addEventListener("click", () => {
   const ryukyuLat = 26.3;
   const ryukyuLon = 127.5;
-  updateShindo(7); // テストで震度7を表示
+  magnitude = 7;  // テストでマグニチュード7を設定
+  depth = 20;  // テストで深さ20kmを設定
+  updateShindo(7); // 実際の震度（加速度に基づく）
+  updatePredictionShindo(7); // 予測震度（気象庁の震度）
   showEpicenterAndWaves(ryukyuLat, ryukyuLon);
+  displayMagnitudeAndDepth(); // マグニチュードと深さを表示
 });
+
+function displayMagnitudeAndDepth() {
+  const panel = document.getElementById("panel-magnitude-depth");
+  panel.textContent = `マグニチュード: ${magnitude} 深さ: ${depth} km`;
+}
