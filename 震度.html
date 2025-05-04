@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>振動感知サイト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        #message {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff0000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>振動を感知するサイト</h1>
+    <p>スマートフォンやタブレットで動かしてみてください。</p>
+    <div id="message">振動感知！</div>
+
+    <script>
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', function(event) {
+                let acceleration = event.acceleration;
+                
+                // 加速度の値が閾値を超えたとき
+                if (Math.abs(acceleration.x) > 10 || Math.abs(acceleration.y) > 10 || Math.abs(acceleration.z) > 10) {
+                    document.getElementById('message').style.display = 'block'; // 振動感知メッセージ表示
+                } else {
+                    document.getElementById('message').style.display = 'none'; // 振動感知メッセージ非表示
+                }
+            });
+        } else {
+            alert('この端末では加速度センサーを使用できません。');
+        }
+    </script>
+</body>
+</html>
