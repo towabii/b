@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>正確な震度判定（簡易）</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>震度チェッカー</title>
   <style>
     body {
       font-family: sans-serif;
@@ -26,12 +26,20 @@
       border-radius: 6px;
       cursor: pointer;
     }
+    #earthquake-info {
+      margin-top: 30px;
+      font-size: 18px;
+      color: #1d3557;
+    }
   </style>
 </head>
 <body>
-  <h1>スマホで震度判定（簡易）</h1>
-  <p>机や地面にスマホを置いて、地震のような揺れに反応します。</p>
+  <h1>スマホで震度チェック</h1>
+  <p>スマホを机や地面に置いて揺れを検知します。</p>
+  
   <div id="intensity">震度：0</div>
+  <div id="earthquake-info">最新の地震情報はここに表示されます。</div>
+  
   <button id="permission-button">センサーを許可</button>
 
   <script>
@@ -51,7 +59,23 @@
       }
     });
 
-    // 簡易震度変換（気象庁の震度階級表を参考に）
+    // 気象庁APIから地震情報を取得
+    function fetchEarthquakeInfo() {
+      fetch('https://api.p2pquake.net/v1/quake/now.json') // P2P地震API（サンプル）
+        .then(response => response.json())
+        .then(data => {
+          const earthquake = data.results[0]; // 最新地震
+          const earthquakeInfo = `
+            震源地: ${earthquake.origin} <br>
+            震度: ${earthquake.intensity} <br>
+            発生時刻: ${new Date(earthquake.time * 1000).toLocaleString()}
+          `;
+          document.getElementById('earthquake-info').innerHTML = earthquakeInfo;
+        })
+        .catch(error => console.error('地震情報の取得エラー:', error));
+    }
+
+    // 気象庁の震度変換
     function toIntensity(gal) {
       if (gal < 2.5) return 0;
       if (gal < 8) return 1;
@@ -66,7 +90,8 @@
     }
 
     const buffer = [];
-    const bufferSize = 10; // 過去10回（約1秒）のデータを保持
+    const bufferSize = 10; // 過去10回のデータを保持（1秒程度）
+    let lastTime = 0;
 
     function startDetecting() {
       window.addEventListener('devicemotion', function (event) {
@@ -89,6 +114,10 @@
         document.getElementById('intensity').textContent = `震度：${intensity}`;
       });
     }
+
+    // 定期的に地震情報を取得
+    setInterval(fetchEarthquakeInfo, 60000); // 1分毎に更新
+    fetchEarthquakeInfo(); // 初回取得
   </script>
 </body>
 </html>
