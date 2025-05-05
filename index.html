@@ -2,138 +2,53 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>カーナビ風サイト</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; }
-        #container { display: flex; height: calc(100% - 30px); }
-        #map { flex: 1; height: 100%; }
-        #right-panel {
-            width: 300px;
-            background: #111;
-            color: #0f0;
-            padding: 10px;
-            font-family: monospace;
-            overflow-y: auto;
-        }
-        #news-bar {
-            height: 30px;
-            background: #333;
-            color: white;
-            overflow: hidden;
-            white-space: nowrap;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-        }
-        #news-bar span {
-            display: inline-block;
-            padding-left: 100%;
-            animation: scroll 20s linear infinite;
-        }
-        @keyframes scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
-        #destination {
-            margin-top: 10px;
-            width: 100%;
-        }
-    </style>
+    <title>防災情報</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <header>
+        <h1>防災情報ポータル</h1>
+        <nav>
+            <ul>
+                <li><a href="#earthquake">地震情報</a></li>
+                <li><a href="#weather">天気情報</a></li>
+                <li><a href="#fire">火災情報</a></li>
+                <li><a href="#tsunami">津波情報</a></li>
+            </ul>
+        </nav>
+    </header>
 
-<div id="news-bar"><span>【最新ニュース】今日は晴れ。地震に注意。渋滞情報：環八渋滞中。新着：○○がリリースされました！</span></div>
+    <main>
+        <!-- 地震情報セクション -->
+        <section id="earthquake">
+            <h2>地震情報</h2>
+            <div id="earthquake-info">読み込み中...</div>
+        </section>
 
-<div id="container">
-    <div id="map"></div>
-    <div id="right-panel">
-        <h3>案内</h3>
-        <div id="instructions">目的地を入力してください。</div>
-        <input type="text" id="destination" placeholder="目的地を入力" />
-        <button onclick="routeTo()">ルート検索</button>
-    </div>
-</div>
+        <!-- 天気情報セクション -->
+        <section id="weather">
+            <h2>天気情報</h2>
+            <div id="weather-info">読み込み中...</div>
+        </section>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
-<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+        <!-- 火災情報セクション -->
+        <section id="fire">
+            <h2>火災情報</h2>
+            <div id="fire-info">読み込み中...</div>
+        </section>
 
-<script>
-    let map = L.map('map').setView([35.6895, 139.6917], 13);
-    let routingControl;
-    let currentPosition = null;
-    let currentRoute = null;
-    let geocoder = L.Control.Geocoder.nominatim();
+        <!-- 津波情報セクション -->
+        <section id="tsunami">
+            <h2>津波情報</h2>
+            <div id="tsunami-info">読み込み中...</div>
+        </section>
+    </main>
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    <footer>
+        <p>&copy; 2025 防災情報ポータル</p>
+    </footer>
 
-    // 現在地取得
-    navigator.geolocation.getCurrentPosition(pos => {
-        currentPosition = [pos.coords.latitude, pos.coords.longitude];
-        map.setView(currentPosition, 14);
-        L.marker(currentPosition, {icon: L.divIcon({className: 'leaflet-div-icon', html: '⬆️'})})
-            .addTo(map).bindPopup("現在地").openPopup();
-    });
-
-    function routeTo() {
-        const dest = document.getElementById("destination").value;
-        if (!dest || !currentPosition) return;
-
-        // 誤字候補を返すNominatim検索API（オープンソース）
-        geocoder.geocode(dest, function(results) {
-            if (results.length === 0) {
-                alert("場所が見つかりません");
-                return;
-            }
-
-            const latlng = results[0].center;
-
-            if (routingControl) map.removeControl(routingControl);
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(currentPosition),
-                    L.latLng(latlng)
-                ],
-                routeWhileDragging: false,
-                createMarker: () => null,
-                show: false
-            }).addTo(map);
-
-            routingControl.on('routesfound', function(e) {
-                const steps = e.routes[0].instructions;
-                const instrHTML = steps.map(s => `<div>${convertToJapanese(s)}</div>`).join('');
-                document.getElementById("instructions").innerHTML = instrHTML;
-                playVoiceGuidance(steps);
-            });
-        });
-    }
-
-    function convertToJapanese(instruction) {
-        const translations = {
-            "Head northeast": "北東へ進んでください",
-            "Turn left": "左に曲がってください",
-            "Turn right": "右に曲がってください",
-            "Turn right onto 環状2号線 (82)": "環状2号線（82号線）に右折してください",
-            "Turn right onto 県道29号那覇北中城線 (29)": "県道29号那覇北中城線（29号線）に右折してください",
-            "You have arrived at your destination, on the right": "目的地に到着しました。右側です"
-        };
-        return translations[instruction] || instruction; // 翻訳がない場合はそのまま
-    }
-
-    function playVoiceGuidance(steps) {
-        const voice = new SpeechSynthesisUtterance();
-        voice.lang = "ja-JP"; // 日本語
-        steps.forEach(step => {
-            const instruction = convertToJapanese(step.text);
-            voice.text = instruction;
-            speechSynthesis.speak(voice);
-        });
-    }
-</script>
-
+    <script src="scripts.js"></script>
 </body>
 </html>
