@@ -3,28 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>防災情報サイト</title>
+    <title>たまごっち風ゲーム</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="menu">
-            <h2>防災情報</h2>
-            <ul>
-                <li><a href="#" id="earthquake-btn">地震情報</a></li>
-                <li><a href="#" id="tsunami-btn">津波情報</a></li>
-                <li><a href="#" id="weather-btn">天気予報</a></li>
-                <li><a href="#" id="rain-radar-btn">雨雲レーダー</a></li>
-            </ul>
-        </div>
-        <div class="info">
-            <h2>最新の情報</h2>
-            <p id="earthquake-info">地震情報を取得中...</p>
-            <p id="tsunami-info">津波情報を取得中...</p>
-            <p id="weather-info">天気情報を取得中...</p>
-            <p id="rain-radar-info">雨雲レーダー情報を取得中...</p>
-        </div>
+    <h1>たまごっち風育成ゲーム</h1>
+    <div id="character">
+        <img src="image/egg.png" alt="キャラクター" id="character-img">
+        <p>名前: <span id="name">たまごっち</span></p>
+        <p>健康度: <span id="health">100</span></p>
+        <p>幸福度: <span id="happiness">100</span></p>
     </div>
+    <button id="feed-btn">餌をあげる</button>
+    <button id="play-btn">遊ぶ</button>
+    <button id="rest-btn">休ませる</button>
+    <button id="rename-btn">名前を変更する</button>
+
     <script src="script.js"></script>
 </body>
 </html>
