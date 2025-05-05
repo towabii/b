@@ -1,84 +1,79 @@
-// 地図の初期化
-var map = L.map('map').setView([35.6895, 139.6917], 12); // 東京の座標に設定
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+// Google Mapの初期化
+let map;
+let directionsService;
+let directionsRenderer;
 
-// 目的地を検索する関数
-function getRoute() {
-    const destination = document.getElementById('destination').value;
-    if (!destination) {
-        alert("目的地を入力してください");
-        return;
-    }
+function initMap() {
+    // 地図の初期設定
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: {lat: 35.6895, lng: 139.6917},  // 初期位置: 東京
+        zoom: 12
+    });
 
-    navigator.geolocation.getCurrentPosition(function(position) {
-        var startLat = position.coords.latitude;
-        var startLon = position.coords.longitude;
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
+    directionsRenderer.setMap(map);
 
-        // OpenCage Geocoding APIを使って住所を座標に変換（目的地）
-        fetch('https://api.opencagedata.com/geocode/v1/json?q=' + destination + '&key=YOUR_API_KEY')
-            .then(response => response.json())
-            .then(data => {
-                if (data.results.length > 0) {
-                    var endLat = data.results[0].geometry.lat;
-                    var endLon = data.results[0].geometry.lng;
-
-                    // ルートを描画
-                    var routeControl = L.Routing.control({
-                        waypoints: [
-                            L.latLng(startLat, startLon),
-                            L.latLng(endLat, endLon)
-                        ],
-                        routeWhileDragging: true
-                    }).addTo(map);
-
-                    // 次の指示を更新
-                    routeControl.on('routesfound', function(e) {
-                        var nextInstruction = e.routes[0].instructions[0].text;
-                        document.getElementById('next-instruction').innerText = "次の指示: " + nextInstruction;
-                    });
-                } else {
-                    alert("目的地が見つかりませんでした");
-                }
-            });
+    // ルート案内ボタンのクリックイベント
+    document.getElementById('get-route').addEventListener('click', function () {
+        const destination = document.getElementById('destination').value;
+        if (destination) {
+            calculateRoute(destination);
+        }
     });
 }
 
-// 音声案内を開始する関数
-function startVoiceGuide() {
-    const synth = window.speechSynthesis;
-    const text = document.getElementById('next-instruction').innerText;
-    const utterance = new SpeechSynthesisUtterance(text);
-    synth.speak(utterance);
-}
+// ルート計算
+function calculateRoute(destination) {
+    const request = {
+        origin: '現在地',  // 現在地は自動取得するか、手動で指定
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING
+    };
 
-// ニュースの取得
-async function fetchNews() {
-    const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://news.yahoo.co.jp/rss/topics/top-picks.xml'));
-    const data = await response.json();
-    const xml = new DOMParser().parseFromString(data.contents, 'text/xml');
-    const items = xml.querySelectorAll('item');
-    let newsHtml = "";
-    items.forEach(item => {
-        const title = item.querySelector('title').textContent;
-        newsHtml += `<p>${title}</p>`;
+    directionsService.route(request, function (result, status) {
+        if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
+            updateRouteInfo(result);
+        } else {
+            alert('ルートの計算に失敗しました。');
+        }
     });
-    document.getElementById('news-bar').innerHTML = newsHtml;
 }
 
-fetchNews(); // ページロード時にニュースを取得
-
-// 渋滞情報（Google Maps Traffic Layer）
-const trafficLayer = L.trafficLayer().addTo(map);
-
-// 信号機の数を表示（OpenStreetMapのデータから）
-function displayTrafficSignals() {
-    fetch('https://overpass-api.de/api/interpreter?data=[out:json];(node["highway"="traffic_signals"](35.6895,139.6917,35.7000,139.7100));out;')
-        .then(response => response.json())
-        .then(data => {
-            const signals = data.elements;
-            signals.forEach(signal => {
-                L.marker([signal.lat, signal.lon]).addTo(map).bindPopup("信号機");
-            });
-        });
+// ルート案内の表示
+function updateRouteInfo(result) {
+    const leg = result.routes[0].legs[0];
+    const routeInfo = document.getElementById('route-text');
+    routeInfo.innerHTML = `
+        <strong>出発地:</strong> ${leg.start_address}<br>
+        <strong>目的地:</strong> ${leg.end_address}<br>
+        <strong>所要時間:</strong> ${leg.duration.text}<br>
+        <strong>距離:</strong> ${leg.distance.text}
+    `;
 }
-displayTrafficSignals(); // 信号機を地図に表示
+
+// ニュースの流れ
+function startNewsTicker() {
+    const newsText = document.getElementById('news-text');
+    const newsItems = [
+        "速報: 今日は晴れ、気温は20度。",
+        "ニュース: 東京オリンピックの準備が順調。",
+        "経済: 株価が大きく上昇しています。",
+        "天気: 明日から雨の予報。",
+        "交通: 市内で渋滞が発生中。",
+    ];
+
+    let currentNewsIndex = 0;
+    
+    // ニュースを一定間隔で更新
+    setInterval(() => {
+        newsText.innerText = newsItems[currentNewsIndex];
+        currentNewsIndex = (currentNewsIndex + 1) % newsItems.length;
+    }, 5000); // 5秒ごとにニュースを切り替え
+}
+
+// ページがロードされたらニュースを流し始める
+window.onload = function () {
+    startNewsTicker();
+};
