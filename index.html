@@ -7,21 +7,27 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="map"></div>
-    <div id="right-panel">
-        <h2>目的地案内</h2>
-        <input type="text" id="destination" placeholder="目的地を入力" class="button" />
-        <button onclick="getRoute()" class="button">ルート検索</button>
-        <h3 id="next-instruction">次の指示: ここに指示が表示されます</h3>
-        <div id="voice-controls">
-            <button onclick="startVoiceGuide()" class="button">音声案内を開始</button>
+    <div id="container">
+        <!-- 地図の表示エリア -->
+        <div id="map"></div>
+
+        <!-- 右側のパネル（目的地案内） -->
+        <div id="right-panel">
+            <h2>目的地入力</h2>
+            <input id="destination" type="text" placeholder="目的地を入力">
+            <button id="get-route">ルート検索</button>
+            <div id="route-info">
+                <p id="route-text">ルート案内がここに表示されます。</p>
+            </div>
         </div>
     </div>
-    <div id="news-bar">最新のニュースがここに流れます</div>
 
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.6/leaflet-routing-machine.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet-traffic-layer@1.0.0/leaflet.traffic.layer.min.js"></script>
+    <!-- ニュースバー -->
+    <div id="news-bar">
+        <span id="news-text">Loading news...</span>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
     <script src="script.js"></script>
 </body>
 </html>
