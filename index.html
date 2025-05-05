@@ -44,7 +44,7 @@
 </head>
 <body>
 
-<div id="news-bar"><span>【最新ニュース】おはようございます。今日の天気は晴れ、交通渋滞情報：環八が渋滞しています。</span></div>
+<div id="news-bar"><span>【最新ニュース】今日は晴れ。地震に注意。渋滞情報：環八渋滞中。新着：○○がリリースされました！</span></div>
 
 <div id="container">
     <div id="map"></div>
@@ -58,11 +58,14 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <script>
     let map = L.map('map').setView([35.6895, 139.6917], 13);
     let routingControl;
     let currentPosition = null;
+    let currentRoute = null;
+    let geocoder = L.Control.Geocoder.nominatim();
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -72,58 +75,64 @@
     navigator.geolocation.getCurrentPosition(pos => {
         currentPosition = [pos.coords.latitude, pos.coords.longitude];
         map.setView(currentPosition, 14);
-        L.marker(currentPosition).addTo(map).bindPopup("現在地").openPopup();
+        L.marker(currentPosition, {icon: L.divIcon({className: 'leaflet-div-icon', html: '⬆️'})})
+            .addTo(map).bindPopup("現在地").openPopup();
     });
 
     function routeTo() {
         const dest = document.getElementById("destination").value;
         if (!dest || !currentPosition) return;
 
-        // Nominatimで検索して候補を表示
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}&limit=5`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.length === 0) {
-                    alert("場所が見つかりません");
-                    return;
-                }
+        // 誤字候補を返すNominatim検索API（オープンソース）
+        geocoder.geocode(dest, function(results) {
+            if (results.length === 0) {
+                alert("場所が見つかりません");
+                return;
+            }
 
-                const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            const latlng = results[0].center;
 
-                // ルート案内の設定
-                if (routingControl) map.removeControl(routingControl);
-                routingControl = L.Routing.control({
-                    waypoints: [
-                        L.latLng(currentPosition),
-                        L.latLng(latlng)
-                    ],
-                    routeWhileDragging: false,
-                    createMarker: () => null,
-                    show: false
-                }).addTo(map);
+            if (routingControl) map.removeControl(routingControl);
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(currentPosition),
+                    L.latLng(latlng)
+                ],
+                routeWhileDragging: false,
+                createMarker: () => null,
+                show: false
+            }).addTo(map);
 
-                routingControl.on('routesfound', function(e) {
-                    const steps = e.routes[0].instructions;
-                    const instrHTML = steps.map(s => `<div>${s.text}</div>`).join('');
-                    document.getElementById("instructions").innerHTML = instrHTML;
-
-                    // 音声案内（日本語）
-                    const synth = window.speechSynthesis;
-                    const utterance = new SpeechSynthesisUtterance();
-                    utterance.lang = "ja-JP";
-                    utterance.text = steps.map(s => s.text).join(', ');
-                    synth.speak(utterance);
-                });
+            routingControl.on('routesfound', function(e) {
+                const steps = e.routes[0].instructions;
+                const instrHTML = steps.map(s => `<div>${convertToJapanese(s)}</div>`).join('');
+                document.getElementById("instructions").innerHTML = instrHTML;
+                playVoiceGuidance(steps);
             });
+        });
     }
 
-    // ニュースAPI（例：fetchニュース）
-    fetch('https://newsapi.org/v2/top-headlines?country=jp&apiKey=YOUR_API_KEY')
-        .then(res => res.json())
-        .then(data => {
-            const news = data.articles.slice(0, 5).map(article => article.title).join(' | ');
-            document.getElementById("news-bar").innerHTML = `<span>${news}</span>`;
+    function convertToJapanese(instruction) {
+        const translations = {
+            "Head northeast": "北東へ進んでください",
+            "Turn left": "左に曲がってください",
+            "Turn right": "右に曲がってください",
+            "Turn right onto 環状2号線 (82)": "環状2号線（82号線）に右折してください",
+            "Turn right onto 県道29号那覇北中城線 (29)": "県道29号那覇北中城線（29号線）に右折してください",
+            "You have arrived at your destination, on the right": "目的地に到着しました。右側です"
+        };
+        return translations[instruction] || instruction; // 翻訳がない場合はそのまま
+    }
+
+    function playVoiceGuidance(steps) {
+        const voice = new SpeechSynthesisUtterance();
+        voice.lang = "ja-JP"; // 日本語
+        steps.forEach(step => {
+            const instruction = convertToJapanese(step.text);
+            voice.text = instruction;
+            speechSynthesis.speak(voice);
         });
+    }
 </script>
 
 </body>
