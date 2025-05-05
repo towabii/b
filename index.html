@@ -44,7 +44,7 @@
 </head>
 <body>
 
-<div id="news-bar"><span>【ニュース】今日は晴れ。地震に注意。渋滞情報：環八渋滞中。新着：○○がリリースされました！</span></div>
+<div id="news-bar"><span>【最新ニュース】おはようございます。今日の天気は晴れ、交通渋滞情報：環八が渋滞しています。</span></div>
 
 <div id="container">
     <div id="map"></div>
@@ -58,6 +58,7 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+
 <script>
     let map = L.map('map').setView([35.6895, 139.6917], 13);
     let routingControl;
@@ -78,16 +79,19 @@
         const dest = document.getElementById("destination").value;
         if (!dest || !currentPosition) return;
 
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}`)
+        // Nominatimで検索して候補を表示
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dest)}&limit=5`)
             .then(res => res.json())
             .then(data => {
                 if (data.length === 0) {
                     alert("場所が見つかりません");
                     return;
                 }
-                const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-                if (routingControl) map.removeControl(routingControl);
 
+                const latlng = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+
+                // ルート案内の設定
+                if (routingControl) map.removeControl(routingControl);
                 routingControl = L.Routing.control({
                     waypoints: [
                         L.latLng(currentPosition),
@@ -102,9 +106,24 @@
                     const steps = e.routes[0].instructions;
                     const instrHTML = steps.map(s => `<div>${s.text}</div>`).join('');
                     document.getElementById("instructions").innerHTML = instrHTML;
+
+                    // 音声案内（日本語）
+                    const synth = window.speechSynthesis;
+                    const utterance = new SpeechSynthesisUtterance();
+                    utterance.lang = "ja-JP";
+                    utterance.text = steps.map(s => s.text).join(', ');
+                    synth.speak(utterance);
                 });
             });
     }
+
+    // ニュースAPI（例：fetchニュース）
+    fetch('https://newsapi.org/v2/top-headlines?country=jp&apiKey=YOUR_API_KEY')
+        .then(res => res.json())
+        .then(data => {
+            const news = data.articles.slice(0, 5).map(article => article.title).join(' | ');
+            document.getElementById("news-bar").innerHTML = `<span>${news}</span>`;
+        });
 </script>
 
 </body>
