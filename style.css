@@ -1,92 +1,59 @@
-/* 全体レイアウト */
+/* ダークモードテーマのスタイル */
 body {
-  margin: 0;
-  font-family: 'Segoe UI', 'Noto Sans JP', sans-serif;
-  background-color: #f2f2f2;
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
-/* 地図＋右パネル */
-#container {
-  display: flex;
-  height: calc(100vh - 30px); /* ニュースバー分除く */
-}
-
-/* 地図 */
 #map {
-  flex: 2;
-  height: 100%;
+    height: 100vh;
+    width: 60%;
+    float: left;
 }
 
-/* 右パネル（案内） */
 #right-panel {
-  flex: 1;
-  background-color: #ffffff;
-  padding: 20px;
-  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.1);
-  font-size: 1rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: start;
+    height: 100vh;
+    width: 40%;
+    float: right;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
 }
 
-#right-panel h3 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: #333;
+#right-panel h2 {
+    text-align: center;
 }
 
-#instructions {
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-  line-height: 1.5;
-}
-
-#destination {
-  padding: 10px;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  margin-bottom: 10px;
-}
-
-button {
-  padding: 10px 16px;
-  font-size: 1rem;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-button:hover {
-  background-color: #0056b3;
-}
-
-/* ニュースバー */
 #news-bar {
-  height: 30px;
-  background-color: #333;
-  color: white;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  padding-left: 10px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background-color: #444;
+    color: #fff;
+    padding: 5px;
+    text-align: center;
+    font-size: 14px;
+    overflow-x: scroll;
 }
 
-#news-scroll {
-  white-space: nowrap;
-  display: inline-block;
-  animation: scroll-left 25s linear infinite;
+.button {
+    padding: 10px;
+    background-color: #ff8c00;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    margin: 5px 0;
 }
 
-@keyframes scroll-left {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
+.button:hover {
+    background-color: #ff6a00;
+}
+
+/* 音声案内用スタイル */
+#voice-controls {
+    margin-top: 10px;
+    text-align: center;
 }
